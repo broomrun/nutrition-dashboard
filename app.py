@@ -459,7 +459,7 @@ else:
 
 # =========================
 # DATA TABLE AND DOWNLOAD
-# =========================
+
 st.markdown("## Food Data Table")
 table_columns = [
     "name", "calories", "protein", "fat", "carbs",
