@@ -152,195 +152,216 @@ raw_df = prepare_data(load_data(DATA_PATH))
 if "working_df" not in st.session_state:
     st.session_state.working_df = raw_df.copy()
 
-
-# =========================
 # SIDEBAR
-# =========================
-st.sidebar.markdown("## Dashboard Controls")
-st.sidebar.caption("Filter, delete food rows, and adjust nutrition targets.")
+from check_your_nutrition import show_check_your_nutrition
+if "menu" not in st.session_state:
+    st.session_state.menu = "Dashboard"
 
-with st.sidebar.expander("Nutrition Targets", expanded=False):
-    st.session_state.akg_calories = st.number_input("Daily Calories Target (kcal)", min_value=1, value=2250, step=50)
-    st.session_state.akg_protein = st.number_input("Daily Protein Target (g)", min_value=1, value=60, step=5)
-    st.session_state.akg_fat = st.number_input("Daily Fat Target (g)", min_value=1, value=67, step=5)
-    st.session_state.akg_carbs = st.number_input("Daily Carbohydrate Target (g)", min_value=1, value=325, step=10)
-
-working_df = add_nutrition_metrics(st.session_state.working_df)
-
-st.sidebar.markdown("### Delete Food")
-delete_name = st.sidebar.text_input("Enter food name to delete")
-delete_mode = st.sidebar.radio("Delete mode", ["Exact match", "Contains text"], horizontal=False)
-
-if st.sidebar.button("Delete from Dashboard"):
-    if delete_name.strip() == "":
-        st.sidebar.warning("Please enter a food name first.")
-    else:
-        before_count = len(st.session_state.working_df)
-        if delete_mode == "Exact match":
-            mask_delete = st.session_state.working_df["name"].str.lower() == delete_name.strip().lower()
-        else:
-            mask_delete = st.session_state.working_df["name"].str.contains(delete_name.strip(), case=False, na=False)
-
-        st.session_state.working_df = st.session_state.working_df[~mask_delete].copy()
-        deleted_count = before_count - len(st.session_state.working_df)
-
-        if deleted_count > 0:
-            st.sidebar.success(f"Deleted {deleted_count} row(s).")
-            st.rerun()
-        else:
-            st.sidebar.info("No matching food was found.")
-
-if st.sidebar.button("Reset Deleted Data"):
-    st.session_state.working_df = raw_df.copy()
+if st.sidebar.button(
+    "Dashboard",
+    use_container_width=True
+):
+    st.session_state.menu = "Dashboard"
     st.rerun()
 
-working_df = add_nutrition_metrics(st.session_state.working_df)
+if st.sidebar.button(
+    "Go Check Your Nutrition",
+    use_container_width=True
+):
+    st.session_state.menu = "Check Your Nutrition"
+    st.rerun()
 
-st.sidebar.markdown("### Filters")
-search_food = st.sidebar.text_input("Search food")
+menu = st.session_state.menu
 
-calorie_range = st.sidebar.slider(
-    "Calories Range",
-    float(working_df["calories"].min()),
-    float(working_df["calories"].max()),
-    (float(working_df["calories"].min()), float(working_df["calories"].max()))
-)
+st.sidebar.caption("Filter, delete food rows, and adjust nutrition targets.")
 
-protein_range = st.sidebar.slider(
-    "Protein Range",
-    float(working_df["protein"].min()),
-    float(working_df["protein"].max()),
-    (float(working_df["protein"].min()), float(working_df["protein"].max()))
-)
-
-top_n = st.sidebar.slider("Number of Ranked Foods", 5, 30, 10)
-
-filtered_df = working_df[
-    (working_df["calories"] >= calorie_range[0]) &
-    (working_df["calories"] <= calorie_range[1]) &
-    (working_df["protein"] >= protein_range[0]) &
-    (working_df["protein"] <= protein_range[1])
-].copy()
-
-if search_food:
-    filtered_df = filtered_df[filtered_df["name"].str.contains(search_food, case=False, na=False)]
-
-if filtered_df.empty:
-    st.warning("No data matches the selected filters.")
+if menu == "Check Your Nutrition":
+    show_check_your_nutrition(raw_df)
     st.stop()
 
+if menu == "Dashboard":
+    with st.sidebar.expander("Nutrition Targets", expanded=False):
+        st.session_state.akg_calories = st.number_input("Daily Calories Target (kcal)", min_value=1, value=2250, step=50)
+        st.session_state.akg_protein = st.number_input("Daily Protein Target (g)", min_value=1, value=60, step=5)
+        st.session_state.akg_fat = st.number_input("Daily Fat Target (g)", min_value=1, value=67, step=5)
+        st.session_state.akg_carbs = st.number_input("Daily Carbohydrate Target (g)", min_value=1, value=325, step=10)
 
-# =========================
-# HEADER
-# =========================
-st.markdown(
-    """
-    <div class="hero-card">
-        <div class="hero-title">Food Nutrition Intelligence Dashboard</div>
-        <div class="hero-subtitle">
-            Analyze food images and nutrition data using calories, protein, fat, carbohydrates,
-            portion efficiency, AKG contribution, and automatic insight summaries.
+    working_df = add_nutrition_metrics(st.session_state.working_df)
+
+    st.sidebar.markdown("### Delete Food")
+    delete_name = st.sidebar.text_input("Enter food name to delete")
+    delete_mode = st.sidebar.radio("Delete mode", ["Exact match", "Contains text"], horizontal=False)
+
+    if st.sidebar.button("Delete from Dashboard"):
+        if delete_name.strip() == "":
+            st.sidebar.warning("Please enter a food name first.")
+        else:
+            before_count = len(st.session_state.working_df)
+            if delete_mode == "Exact match":
+                mask_delete = st.session_state.working_df["name"].str.lower() == delete_name.strip().lower()
+            else:
+                mask_delete = st.session_state.working_df["name"].str.contains(delete_name.strip(), case=False, na=False)
+
+            st.session_state.working_df = st.session_state.working_df[~mask_delete].copy()
+            deleted_count = before_count - len(st.session_state.working_df)
+
+            if deleted_count > 0:
+                st.sidebar.success(f"Deleted {deleted_count} row(s).")
+                st.rerun()
+            else:
+                st.sidebar.info("No matching food was found.")
+
+    if st.sidebar.button("Reset Deleted Data"):
+        st.session_state.working_df = raw_df.copy()
+        st.rerun()
+
+    working_df = add_nutrition_metrics(st.session_state.working_df)
+
+    st.sidebar.markdown("### Filters")
+    search_food = st.sidebar.text_input("Search food")
+
+    calorie_range = st.sidebar.slider(
+        "Calories Range",
+        float(working_df["calories"].min()),
+        float(working_df["calories"].max()),
+        (float(working_df["calories"].min()), float(working_df["calories"].max()))
+    )
+
+    protein_range = st.sidebar.slider(
+        "Protein Range",
+        float(working_df["protein"].min()),
+        float(working_df["protein"].max()),
+        (float(working_df["protein"].min()), float(working_df["protein"].max()))
+    )
+
+    top_n = st.sidebar.slider("Number of Ranked Foods", 5, 30, 10)
+
+    filtered_df = working_df[
+        (working_df["calories"] >= calorie_range[0]) &
+        (working_df["calories"] <= calorie_range[1]) &
+        (working_df["protein"] >= protein_range[0]) &
+        (working_df["protein"] <= protein_range[1])
+    ].copy()
+
+    if search_food:
+        filtered_df = filtered_df[filtered_df["name"].str.contains(search_food, case=False, na=False)]
+
+    if filtered_df.empty:
+        st.warning("No data matches the selected filters.")
+        st.stop()
+
+
+    # =========================
+    # HEADER
+    # =========================
+    st.markdown(
+        """
+        <div class="hero-card">
+            <div class="hero-title">Food Nutrition Intelligence Dashboard</div>
+            <div class="hero-subtitle">
+                Analyze food images and nutrition data using calories, protein, fat, carbohydrates,
+                portion efficiency, AKG contribution, and automatic insight summaries.
+            </div>
         </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-# =========================
-# KPI
-# =========================
-best_row = filtered_df.sort_values("overall_portions_combined").iloc[0]
-highest_protein_row = filtered_df.sort_values("protein", ascending=False).iloc[0]
+    # =========================
+    # KPI
+    # =========================
+    best_row = filtered_df.sort_values("overall_portions_combined").iloc[0]
+    highest_protein_row = filtered_df.sort_values("protein", ascending=False).iloc[0]
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Foods", f"{len(filtered_df):,}")
-col2.metric("Average Calories", f"{filtered_df['calories'].mean():.2f} kcal")
-col3.metric("Average Protein", f"{filtered_df['protein'].mean():.2f} g")
-col4.metric("Most Efficient Food", best_row["name"])
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Foods", f"{len(filtered_df):,}")
+    col2.metric("Average Calories", f"{filtered_df['calories'].mean():.2f} kcal")
+    col3.metric("Average Protein", f"{filtered_df['protein'].mean():.2f} g")
+    col4.metric("Most Efficient Food", best_row["name"])
 
 
-# =========================
-# INSIGHTS
-# =========================
-st.markdown("## Key Insights")
+    # =========================
+    # INSIGHTS
+    # =========================
+    st.markdown("## Key Insights")
 
-avg_cal = filtered_df["calories"].mean()
-avg_protein = filtered_df["protein"].mean()
-median_eff = filtered_df["overall_portions_combined"].median()
+    avg_cal = filtered_df["calories"].mean()
+    avg_protein = filtered_df["protein"].mean()
+    median_eff = filtered_df["overall_portions_combined"].median()
 
-st.markdown(
-    f"""
-    <div class="insight-card">
-        <div class="insight-title">Best efficiency candidate</div>
-        <div class="insight-text">
-            <b>{best_row['name']}</b> is the most efficient food in the current filtered data.
-            It requires approximately <b>{best_row['overall_portions_combined']:.1f} g</b> to satisfy both
-            the calorie and protein target logic used in this dashboard.
+    st.markdown(
+        f"""
+        <div class="insight-card">
+            <div class="insight-title">Best efficiency candidate</div>
+            <div class="insight-text">
+                <b>{best_row['name']}</b> is the most efficient food in the current filtered data.
+                It requires approximately <b>{best_row['overall_portions_combined']:.1f} g</b> to satisfy both
+                the calorie and protein target logic used in this dashboard.
+            </div>
         </div>
-    </div>
-    <div class="insight-card">
-        <div class="insight-title">Protein concentration</div>
-        <div class="insight-text">
-            <b>{highest_protein_row['name']}</b> has the highest protein value in the current view,
-            with <b>{highest_protein_row['protein']:.1f} g protein per 100 g</b>. This makes it useful
-            for comparing high-protein foods against their calorie level.
+        <div class="insight-card">
+            <div class="insight-title">Protein concentration</div>
+            <div class="insight-text">
+                <b>{highest_protein_row['name']}</b> has the highest protein value in the current view,
+                with <b>{highest_protein_row['protein']:.1f} g protein per 100 g</b>. This makes it useful
+                for comparing high-protein foods against their calorie level.
+            </div>
         </div>
-    </div>
-    <div class="insight-card">
-        <div class="insight-title">Overall nutrition pattern</div>
-        <div class="insight-text">
-            The filtered dataset has an average of <b>{avg_cal:.1f} kcal</b> and
-            <b>{avg_protein:.1f} g protein</b> per 100 g. The median efficiency requirement is
-            <b>{median_eff:.1f} g</b>, so foods below this value are relatively more efficient
-            than the typical item in the selected range.
+        <div class="insight-card">
+            <div class="insight-title">Overall nutrition pattern</div>
+            <div class="insight-text">
+                The filtered dataset has an average of <b>{avg_cal:.1f} kcal</b> and
+                <b>{avg_protein:.1f} g protein</b> per 100 g. The median efficiency requirement is
+                <b>{median_eff:.1f} g</b>, so foods below this value are relatively more efficient
+                than the typical item in the selected range.
+            </div>
         </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-# =========================
-# EFFICIENCY RANKING
-# =========================
-st.markdown("## Most Efficient Foods")
-top_efficient = filtered_df.sort_values("overall_portions_combined").head(top_n)
+    # =========================
+    # EFFICIENCY RANKING
+    # =========================
+    st.markdown("## Most Efficient Foods")
+    top_efficient = filtered_df.sort_values("overall_portions_combined").head(top_n)
 
-fig_eff = px.bar(
-    top_efficient,
-    x="overall_portions_combined",
-    y="name",
-    orientation="h",
-    color="overall_portions_combined",
-    color_continuous_scale="Greens_r",
-    hover_data=["calories", "protein", "fat", "carbs"],
-    text="overall_portions_combined",
-    title="Top Foods by Portion Efficiency"
-)
-fig_eff.update_layout(yaxis=dict(autorange="reversed"), xaxis_title="Required grams", yaxis_title="Food name")
-fig_eff.update_traces(texttemplate="%{text:.1f} g", textposition="outside")
-st.plotly_chart(apply_plot_theme(fig_eff), use_container_width=True)
+    fig_eff = px.bar(
+        top_efficient,
+        x="overall_portions_combined",
+        y="name",
+        orientation="h",
+        color="overall_portions_combined",
+        color_continuous_scale="Greens_r",
+        hover_data=["calories", "protein", "fat", "carbs"],
+        text="overall_portions_combined",
+        title="Top Foods by Portion Efficiency"
+    )
+    fig_eff.update_layout(yaxis=dict(autorange="reversed"), xaxis_title="Required grams", yaxis_title="Food name")
+    fig_eff.update_traces(texttemplate="%{text:.1f} g", textposition="outside")
+    st.plotly_chart(apply_plot_theme(fig_eff), use_container_width=True)
 
-st.info("Lower required grams means the food is more efficient for meeting the combined calorie and protein target logic.")
+    st.info("Lower required grams means the food is more efficient for meeting the combined calorie and protein target logic.")
 
 
-# =========================
-# CALORIES VS PROTEIN
-# =========================
-st.markdown("## Calories vs Protein Relationship")
-fig_scatter = px.scatter(
-    filtered_df,
-    x="calories",
-    y="protein",
-    size="fat",
-    color="overall_portions_combined",
-    color_continuous_scale="Greens_r",
-    hover_name="name",
-    hover_data=["calories", "protein", "fat", "carbs", "overall_portions_combined"],
-    title="Calories and Protein Distribution"
-)
-st.plotly_chart(apply_plot_theme(fig_scatter), use_container_width=True)
+    # =========================
+    # CALORIES VS PROTEIN
+    # =========================
+    st.markdown("## Calories vs Protein Relationship")
+    fig_scatter = px.scatter(
+        filtered_df,
+        x="calories",
+        y="protein",
+        size="fat",
+        color="overall_portions_combined",
+        color_continuous_scale="Greens_r",
+        hover_name="name",
+        hover_data=["calories", "protein", "fat", "carbs", "overall_portions_combined"],
+        title="Calories and Protein Distribution"
+    )
+    st.plotly_chart(apply_plot_theme(fig_scatter), use_container_width=True)
 
 
 # =========================
