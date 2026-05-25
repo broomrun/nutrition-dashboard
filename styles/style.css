@@ -180,3 +180,84 @@ img {
     background: #9DDFB1;
     border-radius: 20px;
 }
+
+.food-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    margin-top: 5px;
+}
+
+.food-title-added {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.nutrition-card-calories {
+    background: #CAD2C5;
+    padding: 10px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    text-align: center;
+    color: black;
+    font-weight: 600;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.nutrition-card-protein {
+    background: #84A98C;
+    padding: 10px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    text-align: center;
+    color: white;
+    font-weight: 600;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.nutrition-card-fat {
+    background: #A3B18A;
+    padding: 10px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    text-align: center;
+    color: black;
+    font-weight: 600;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.nutrition-card-carbs {
+    background: #B7B7A4;
+    padding: 10px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    text-align: center;
+    color: white;
+    font-weight: 600;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.add-button-space {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    padding-top: 10px;
+}
+
+.delete-button-space {
+    height: 42px;
+}
