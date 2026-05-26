@@ -157,42 +157,13 @@ if "working_df" not in st.session_state:
 # SIDEBAR
 # =========================
 st.sidebar.markdown("## Dashboard Controls")
-st.sidebar.caption("Filter, delete food rows, and adjust nutrition targets.")
+st.sidebar.caption("Filter and adjust nutrition targets.")
 
 with st.sidebar.expander("Nutrition Targets", expanded=False):
     st.session_state.akg_calories = st.number_input("Daily Calories Target (kcal)", min_value=1, value=2250, step=50)
     st.session_state.akg_protein = st.number_input("Daily Protein Target (g)", min_value=1, value=60, step=5)
     st.session_state.akg_fat = st.number_input("Daily Fat Target (g)", min_value=1, value=67, step=5)
     st.session_state.akg_carbs = st.number_input("Daily Carbohydrate Target (g)", min_value=1, value=325, step=10)
-
-working_df = add_nutrition_metrics(st.session_state.working_df)
-
-st.sidebar.markdown("### Delete Food")
-delete_name = st.sidebar.text_input("Enter food name to delete")
-delete_mode = st.sidebar.radio("Delete mode", ["Exact match", "Contains text"], horizontal=False)
-
-if st.sidebar.button("Delete from Dashboard"):
-    if delete_name.strip() == "":
-        st.sidebar.warning("Please enter a food name first.")
-    else:
-        before_count = len(st.session_state.working_df)
-        if delete_mode == "Exact match":
-            mask_delete = st.session_state.working_df["name"].str.lower() == delete_name.strip().lower()
-        else:
-            mask_delete = st.session_state.working_df["name"].str.contains(delete_name.strip(), case=False, na=False)
-
-        st.session_state.working_df = st.session_state.working_df[~mask_delete].copy()
-        deleted_count = before_count - len(st.session_state.working_df)
-
-        if deleted_count > 0:
-            st.sidebar.success(f"Deleted {deleted_count} row(s).")
-            st.rerun()
-        else:
-            st.sidebar.info("No matching food was found.")
-
-if st.sidebar.button("Reset Deleted Data"):
-    st.session_state.working_df = raw_df.copy()
-    st.rerun()
 
 working_df = add_nutrition_metrics(st.session_state.working_df)
 
@@ -424,23 +395,6 @@ with col4:
     st.plotly_chart(apply_plot_theme(fig_carbs), use_container_width=True)
 
 
-# =========================
-# AI PREDICTION SIMULATION
-# =========================
-st.markdown("## Food Image Upload and AI Prediction Simulation")
-uploaded_file = st.file_uploader("Upload a food image", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded image", use_container_width=True)
-    st.warning("The real AI model has not been connected yet. This section currently simulates prediction using the most efficient food from the filtered dataset.")
-
-    predicted_row = top_efficient.iloc[0]
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Predicted Food", predicted_row["name"])
-    col2.metric("Calories / 100 g", f"{predicted_row['calories']:.2f} kcal")
-    col3.metric("Protein / 100 g", f"{predicted_row['protein']:.2f} g")
-    col4.metric("Efficiency", f"{predicted_row['overall_portions_combined']:.2f} g")
 
 
 # =========================
@@ -456,24 +410,3 @@ if image_path.exists():
 else:
     st.warning(f"Image was not found at this path: {image_path}")
 
-
-# =========================
-# DATA TABLE AND DOWNLOAD
-
-st.markdown("## Food Data Table")
-table_columns = [
-    "name", "calories", "protein", "fat", "carbs",
-    "overall_portions_combined", "efficiency_rank",
-    "calories_akg_pct", "protein_akg_pct", "fat_akg_pct", "carbs_akg_pct"
-]
-
-display_table = filtered_df[table_columns].sort_values("overall_portions_combined").reset_index(drop=True)
-st.dataframe(display_table, use_container_width=True)
-
-csv_data = st.session_state.working_df.to_csv(index=False).encode("utf-8")
-st.download_button(
-    "Download Current Dataset After Deletion",
-    data=csv_data,
-    file_name="foodimages_updated.csv",
-    mime="text/csv"
-)
