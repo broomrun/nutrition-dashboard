@@ -1,12 +1,14 @@
 import os
 from pathlib import Path
+import html
+import textwrap
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 from PIL import Image
-
+import streamlit.components.v1 as components
 
 # =========================
 # PAGE CONFIG
@@ -24,6 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "Foodimages (4).csv"
 AKG_PATH = BASE_DIR / "data" / "akg (2).csv"
 STYLE_PATH = BASE_DIR / "styles/style.css"
+ASSETS_DIR = BASE_DIR / "assets"
 
 # LOAD AKG
 @st.cache_data
@@ -39,44 +42,8 @@ def load_css(css_path: Path) -> None:
             f"<style>{css_path.read_text(encoding='utf-8')}</style>",
             unsafe_allow_html=True
         )
-
-
-def load_extra_css() -> None:
-    st.markdown(
-        """
-        <style>
-        /* =========================
-           EXTRA DASHBOARD COMPONENTS
-        ========================= */
-
-        .profile-card {
-            background: linear-gradient(135deg, #FFFFFF 0%, #EAFBF0 100%);
-            border: 1px solid var(--green-border);
-            border-radius: 24px;
-            padding: 22px;
-            margin: 16px 0 24px 0;
-            box-shadow: 0 10px 26px rgba(31, 122, 75, 0.08);
-        }
-
-        .profile-title {
-            font-size: 1.35rem;
-            font-weight: 900;
-            color: var(--green-dark);
-            margin-bottom: 8px;
-        }
-
-        .profile-text {
-            color: var(--green-muted);
-            line-height: 1.55;
-        }
-        """,
-        unsafe_allow_html=True
-    )
-
-
+        
 load_css(STYLE_PATH)
-load_extra_css()
-
 
 # SESSION STATE
 def initialize_session_state(akg_df: pd.DataFrame) -> None:
@@ -467,7 +434,8 @@ with st.sidebar.form("profile_form"):
         input_condition_month = 0
 
     apply_profile = st.form_submit_button(
-        "Apply Profile"
+        "Apply Profile",
+        type="primary"
     )
 
 
@@ -606,11 +574,11 @@ if filtered_df.empty:
 st.markdown(
     """
     <div class="hero-card">
-        <div class="hero-title">Food Nutrition Intelligence Dashboard</div>
+        <div class="hero-title">Food Nutrition Dashboard</div>
         <div class="hero-subtitle">
-            Analyze food images and nutrition data using calories, protein, fat,
-            carbohydrates, portion efficiency, user-based AKG estimation,
-            daily food tracking, and automatic insight summaries.
+            This dashboard presents food nutrition data, including calories,
+            protein, fat, carbohydrates, portion analysis, daily nutrition needs,
+            and food tracking summary.
         </div>
     </div>
     """,
@@ -650,156 +618,355 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # =========================
-# KPI
+# MEAL LOG CALCULATION
 # =========================
-best_row = filtered_df.sort_values(
-    "overall_portions_combined"
-).iloc[0]
-
-highest_protein_row = filtered_df.sort_values(
-    "protein",
-    ascending=False
-).iloc[0]
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric(
-    "Total Foods",
-    f"{len(filtered_df):,}"
+meal_df = pd.DataFrame(
+    st.session_state.meal_log
 )
 
-col2.metric(
-    "Average Calories",
-    f"{filtered_df['calories'].mean():.2f} kcal"
+if meal_df.empty:
+    total_calories = 0
+    total_protein = 0
+    total_fat = 0
+    total_carbs = 0
+
+else:
+    total_calories = meal_df["Calories"].sum()
+    total_protein = meal_df["Protein"].sum()
+    total_fat = meal_df["Fat"].sum()
+    total_carbs = meal_df["Carbohydrates"].sum()
+
+# SVG CONFIG
+SVG_CONFIG = {
+    "male": {
+        "scale": 1,
+        "top": -90,
+        "left": -15,
+        "body_height": 500
+    },
+    "female": {
+        "scale": 1,
+        "top": -57,
+        "left": 180,
+        "body_height": 480
+    },
+    "child": {
+        "scale": 0.9,
+        "top": -227,
+        "left": -150,
+        "body_height": 450
+    }
+}
+
+
+def get_svg_path(age, gender):
+    if age < 10:
+        return ASSETS_DIR / "child.svg", "child"
+
+    if gender == "Male":
+        return ASSETS_DIR / "male.svg", "male"
+
+    return ASSETS_DIR / "female.svg", "female"
+
+
+def load_svg(svg_path: Path):
+    if not svg_path.exists():
+        return ""
+
+    with open(svg_path, "r", encoding="utf-8") as f:
+        svg = f.read()
+
+    svg = svg.replace(
+        "<svg",
+        """
+        <svg
+            width="300%"
+            height="160%"
+            viewBox="0 0 512 512"
+            preserveAspectRatio="xMidYMid meet"
+        """
+    )
+
+    return svg
+
+
+def generate_body_progress(svg_content, percent, body_type):
+    cfg = SVG_CONFIG[body_type]
+
+    percent = max(0, min(percent, 100))
+    body_height = cfg["body_height"]
+    fill_px = (percent / 100) * body_height
+
+    return f"""
+    <div style="
+        position:relative;
+        width:320px;
+        height:520px;
+        margin:auto;
+        overflow:hidden;
+    ">
+        <div style="
+            position:absolute;
+            bottom:0;
+            left:50%;
+            transform:translateX(-50%);
+            width:300px;
+            height:{fill_px}px;
+            background:#4ade80;
+            z-index:1;
+            border-radius:10px;
+        "></div>
+
+        <div style="
+            position:absolute;
+            top:{cfg["top"]}px;
+            left:{cfg["left"]}px;
+            transform:
+                translateX(-50%)
+                scale({cfg["scale"]});
+            z-index:5;
+            width:220px;
+            height:500px;
+        ">
+            {svg_content}
+        </div>
+    </div>
+    """
+# =========================
+# BODY NUTRITION PROGRESS
+# =========================
+st.markdown("## Body Nutrition Progress")
+
+calories_pct = min(
+    (total_calories / st.session_state.akg_calories) * 100,
+    100
 )
 
-col3.metric(
-    "Average Protein",
-    f"{filtered_df['protein'].mean():.2f} g"
+protein_pct = min(
+    (total_protein / st.session_state.akg_protein) * 100,
+    100
 )
 
-col4.metric(
-    "Most Efficient Food",
-    best_row["name"]
+fat_pct = min(
+    (total_fat / st.session_state.akg_fat) * 100,
+    100
 )
 
+carbs_pct = min(
+    (total_carbs / st.session_state.akg_carbs) * 100,
+    100
+)
+
+overall_pct = (
+    calories_pct +
+    protein_pct +
+    fat_pct +
+    carbs_pct
+) / 4
+
+svg_path, body_type = get_svg_path(
+    st.session_state.age,
+    st.session_state.gender
+)
+
+svg_content = load_svg(svg_path)
+
+body_col, progress_col = st.columns([1, 1.4])
+
+with body_col:
+    if svg_content:
+        components.html(
+            generate_body_progress(
+                svg_content,
+                overall_pct,
+                body_type
+            ),
+            height=540
+        )
+    else:
+        st.warning("Body SVG asset was not found.")
+
+with progress_col:
+    st.markdown("### Daily Fulfillment")
+
+    st.write(
+        f"Calories: {total_calories:.2f} / "
+        f"{st.session_state.akg_calories:.2f} kcal "
+        f"({calories_pct:.1f}%)"
+    )
+    st.progress(calories_pct / 100)
+
+    st.write(
+        f"Protein: {total_protein:.2f} / "
+        f"{st.session_state.akg_protein:.2f} g "
+        f"({protein_pct:.1f}%)"
+    )
+    st.progress(protein_pct / 100)
+
+    st.write(
+        f"Fat: {total_fat:.2f} / "
+        f"{st.session_state.akg_fat:.2f} g "
+        f"({fat_pct:.1f}%)"
+    )
+    st.progress(fat_pct / 100)
+
+    st.write(
+        f"Carbohydrates: {total_carbs:.2f} / "
+        f"{st.session_state.akg_carbs:.2f} g "
+        f"({carbs_pct:.1f}%)"
+    )
+    st.progress(carbs_pct / 100)
+
+    st.markdown(
+        f"""
+        <div class="insight-card">
+            <div class="insight-title">Overall Nutrition Progress</div>
+            <div class="insight-text">
+                Your overall nutrition fulfillment today is
+                <b>{overall_pct:.1f}%</b>.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # =========================
-# INSIGHTS
+# ADDED FOOD TODAY
 # =========================
-st.markdown("## Key Insights")
-
-avg_cal = filtered_df["calories"].mean()
-avg_protein = filtered_df["protein"].mean()
-median_eff = filtered_df["overall_portions_combined"].median()
+st.markdown("## Added Food Today")
 
 st.markdown(
-    f"""
-    <div class="insight-card">
-        <div class="insight-title">Best efficiency candidate</div>
-        <div class="insight-text">
-            <b>{best_row['name']}</b> is the most efficient food in the current filtered data.
-            It requires approximately <b>{best_row['overall_portions_combined']:.1f} g</b>
-            to satisfy the combined calorie and protein target logic used in this dashboard.
-        </div>
-    </div>
-
-    <div class="insight-card">
-        <div class="insight-title">Protein concentration</div>
-        <div class="insight-text">
-            <b>{highest_protein_row['name']}</b> has the highest protein value in the current view,
-            with <b>{highest_protein_row['protein']:.1f} g protein per 100 g</b>.
-            This makes it useful for comparing high-protein foods against their calorie level.
-        </div>
-    </div>
-
-    <div class="insight-card">
-        <div class="insight-title">Overall nutrition pattern</div>
-        <div class="insight-text">
-            The filtered dataset has an average of <b>{avg_cal:.1f} kcal</b>
-            and <b>{avg_protein:.1f} g protein</b> per 100 g.
-            The median efficiency requirement is <b>{median_eff:.1f} g</b>,
-            so foods below this value are relatively more efficient than the typical item
-            in the selected range.
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
+    """
+    Add foods you eat today. The dashboard will calculate total calories,
+    protein, fat, and carbohydrates, then compare them with your daily needs.
+    """
 )
 
+add_col1, add_col2, add_col3 = st.columns([2, 1, 1])
+
+with add_col1:
+    add_food = st.selectbox(
+        "Choose food to add",
+        filtered_df["name"].sort_values().unique(),
+        key="add_food"
+    )
+
+with add_col2:
+    add_portion = st.number_input(
+        "Add portion (grams)",
+        min_value=1,
+        max_value=3000,
+        value=100,
+        step=10,
+        key="add_portion"
+    )
+
+add_row = filtered_df[
+    filtered_df["name"] == add_food
+].iloc[0]
+
+add_calories, add_protein, add_fat, add_carbs = calculate_food_nutrition(
+    add_row,
+    add_portion
+)
+
+with add_col3:
+    st.write("")
+    st.write("")
+
+    if st.button("Add Food Today", type="primary"):
+        st.session_state.meal_log.append(
+            {
+                "Food": add_food,
+                "Portion (g)": add_portion,
+                "Calories": round(add_calories, 2),
+                "Protein": round(add_protein, 2),
+                "Fat": round(add_fat, 2),
+                "Carbohydrates": round(add_carbs, 2)
+            }
+        )
+
+        st.rerun()
 
 # =========================
-# EFFICIENCY RANKING
+# FOOD LOG TABLE
 # =========================
-st.markdown("## Most Efficient Foods")
+st.markdown("## Food Log Table")
 
-top_efficient = filtered_df.sort_values(
-    "overall_portions_combined"
-).head(top_n)
+meal_df = pd.DataFrame(st.session_state.meal_log)
 
-fig_eff = px.bar(
-    top_efficient,
-    x="overall_portions_combined",
-    y="name",
-    orientation="h",
-    color="overall_portions_combined",
-    color_continuous_scale="Greens_r",
-    hover_data=["calories", "protein", "fat", "carbs"],
-    text="overall_portions_combined",
-    title="Top Foods by Portion Efficiency"
-)
+if meal_df.empty:
+    st.warning("No food has been added today.")
 
-fig_eff.update_layout(
-    yaxis=dict(autorange="reversed"),
-    xaxis_title="Required grams",
-    yaxis_title="Food name"
-)
+else:
+    rows_html = ""
 
-fig_eff.update_traces(
-    texttemplate="%{text:.1f} g",
-    textposition="outside"
-)
+    for _, row in meal_df.iterrows():
+        food_name = html.escape(str(row["Food"]))
 
-st.plotly_chart(
-    apply_plot_theme(fig_eff),
-    use_container_width=True
-)
+        rows_html += f'''<tr>
+<td class="food-name-cell">{food_name}</td>
+<td>{float(row["Portion (g)"]):.0f} g</td>
+<td>{float(row["Calories"]):.1f} kcal</td>
+<td>{float(row["Protein"]):.1f} g</td>
+<td>{float(row["Fat"]):.1f} g</td>
+<td>{float(row["Carbohydrates"]):.1f} g</td>
+</tr>'''
 
-st.info(
-    "Lower required grams means the food is more efficient for meeting the combined calorie and protein target logic."
-)
+    table_html = f'''<div class="food-log-wrapper">
+<table class="food-log-table">
+<thead>
+<tr>
+<th>Food</th>
+<th>Portion</th>
+<th>Calories</th>
+<th>Protein</th>
+<th>Fat</th>
+<th>Carbohydrates</th>
+</tr>
+</thead>
+<tbody>
+{rows_html}
+</tbody>
+</table>
+</div>'''
 
+    st.markdown(table_html, unsafe_allow_html=True)
 
-# =========================
-# CALORIES VS PROTEIN
-# =========================
-st.markdown("## Calories vs Protein Relationship")
+    st.markdown("### Manage Food Log")
 
-fig_scatter = px.scatter(
-    filtered_df,
-    x="calories",
-    y="protein",
-    size="fat",
-    color="overall_portions_combined",
-    color_continuous_scale="Greens_r",
-    hover_name="name",
-    hover_data=[
-        "calories",
-        "protein",
-        "fat",
-        "carbs",
-        "overall_portions_combined"
-    ],
-    title="Calories and Protein Distribution"
-)
+    action_col1, action_col2, action_col3 = st.columns([2, 1, 1])
 
-st.plotly_chart(
-    apply_plot_theme(fig_scatter),
-    use_container_width=True
-)
+    with action_col1:
+        food_options = meal_df["Food"].unique().tolist()
 
+        selected_delete_food = st.selectbox(
+            "Select food to delete",
+            food_options,
+            key="selected_delete_food"
+        )
+
+    with action_col2:
+        st.write("")
+        st.write("")
+
+        if st.button("Delete Food", type="secondary", use_container_width=True):
+            st.session_state.meal_log = [
+                food for food in st.session_state.meal_log
+                if food["Food"] != selected_delete_food
+            ]
+
+            st.rerun()
+
+    with action_col3:
+        st.write("")
+        st.write("")
+
+        if st.button("Clear All", type="secondary", use_container_width=True):
+            st.session_state.meal_log = []
+
+            st.rerun()
 
 # =========================
 # PERSONAL NUTRITION CHECKER
@@ -871,213 +1038,127 @@ col4.metric(
     f"{(check_carbs / st.session_state.akg_carbs) * 100:.1f}% of daily need"
 )
 
+st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
+st.markdown("## Dataset Overview")
 
 # =========================
-# ADDED FOOD TODAY
+# KPI
 # =========================
-st.markdown("## Added Food Today")
+best_row = filtered_df.sort_values(
+    "overall_portions_combined"
+).iloc[0]
 
-st.markdown(
-    """
-    Add foods you eat today. The dashboard will calculate total calories,
-    protein, fat, and carbohydrates, then compare them with your daily needs.
-    """
-)
+highest_protein_row = filtered_df.sort_values(
+    "protein",
+    ascending=False
+).iloc[0]
 
-add_col1, add_col2, add_col3 = st.columns([2, 1, 1])
+calories_pct_check = (check_calories / st.session_state.akg_calories) * 100
+protein_pct_check = (check_protein / st.session_state.akg_protein) * 100
+fat_pct_check = (check_fat / st.session_state.akg_fat) * 100
+carbs_pct_check = (check_carbs / st.session_state.akg_carbs) * 100
 
-with add_col1:
-    add_food = st.selectbox(
-        "Choose food to add",
-        filtered_df["name"].sort_values().unique(),
-        key="add_food"
-    )
+checker_result_html = f'''<div class="checker-result-grid">
+<div class="checker-result-card">
+<div class="checker-label">Calories</div>
+<div class="checker-value">{check_calories:.2f}</div>
+<div class="checker-unit">kcal</div>
+<div class="checker-percent">{calories_pct_check:.1f}% of daily need</div>
+</div>
 
-with add_col2:
-    add_portion = st.number_input(
-        "Add portion (grams)",
-        min_value=1,
-        max_value=3000,
-        value=100,
-        step=10,
-        key="add_portion"
-    )
+<div class="checker-result-card">
+<div class="checker-label">Protein</div>
+<div class="checker-value">{check_protein:.2f}</div>
+<div class="checker-unit">g</div>
+<div class="checker-percent">{protein_pct_check:.1f}% of daily need</div>
+</div>
 
-add_row = filtered_df[
-    filtered_df["name"] == add_food
-].iloc[0]
+<div class="checker-result-card">
+<div class="checker-label">Fat</div>
+<div class="checker-value">{check_fat:.2f}</div>
+<div class="checker-unit">g</div>
+<div class="checker-percent">{fat_pct_check:.1f}% of daily need</div>
+</div>
 
-add_calories, add_protein, add_fat, add_carbs = calculate_food_nutrition(
-    add_row,
-    add_portion
-)
+<div class="checker-result-card">
+<div class="checker-label">Carbohydrates</div>
+<div class="checker-value">{check_carbs:.2f}</div>
+<div class="checker-unit">g</div>
+<div class="checker-percent">{carbs_pct_check:.1f}% of daily need</div>
+</div>
+</div>'''
 
-with add_col3:
-    st.write("")
-    st.write("")
-
-    if st.button("Add Food Today"):
-        st.session_state.meal_log.append(
-            {
-                "Food": add_food,
-                "Portion (g)": add_portion,
-                "Calories": round(add_calories, 2),
-                "Protein": round(add_protein, 2),
-                "Fat": round(add_fat, 2),
-                "Carbohydrates": round(add_carbs, 2)
-            }
-        )
-
+st.markdown(checker_result_html, unsafe_allow_html=True)
 
 # =========================
-# MEAL LOG CALCULATION
+# EFFICIENCY RANKING
 # =========================
-meal_df = pd.DataFrame(
-    st.session_state.meal_log
+st.markdown("## Most Efficient Foods")
+
+top_efficient = filtered_df.sort_values(
+    "overall_portions_combined"
+).head(top_n)
+
+fig_eff = px.bar(
+    top_efficient,
+    x="overall_portions_combined",
+    y="name",
+    orientation="h",
+    color="overall_portions_combined",
+    color_continuous_scale="Greens_r",
+    hover_data=["calories", "protein", "fat", "carbs"],
+    text="overall_portions_combined",
+    title="Top Foods by Portion Efficiency"
 )
 
-if meal_df.empty:
-    total_calories = 0
-    total_protein = 0
-    total_fat = 0
-    total_carbs = 0
-
-else:
-    total_calories = meal_df["Calories"].sum()
-    total_protein = meal_df["Protein"].sum()
-    total_fat = meal_df["Fat"].sum()
-    total_carbs = meal_df["Carbohydrates"].sum()
-
-# =========================
-# DAILY NUTRITION SUMMARY
-# =========================
-st.markdown("## Daily Nutrition Summary")
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric(
-    "Calories Today",
-    f"{total_calories:.2f} kcal",
-    f"{(total_calories / st.session_state.akg_calories) * 100:.1f}%"
+fig_eff.update_layout(
+    yaxis=dict(autorange="reversed"),
+    xaxis_title="Required grams",
+    yaxis_title="Food name"
 )
 
-col2.metric(
-    "Protein Today",
-    f"{total_protein:.2f} g",
-    f"{(total_protein / st.session_state.akg_protein) * 100:.1f}%"
+fig_eff.update_traces(
+    texttemplate="%{text:.1f} g",
+    textposition="outside"
 )
 
-col3.metric(
-    "Fat Today",
-    f"{total_fat:.2f} g",
-    f"{(total_fat / st.session_state.akg_fat) * 100:.1f}%"
+st.plotly_chart(
+    apply_plot_theme(fig_eff),
+    use_container_width=True
 )
 
-col4.metric(
-    "Carbohydrates Today",
-    f"{total_carbs:.2f} g",
-    f"{(total_carbs / st.session_state.akg_carbs) * 100:.1f}%"
+st.warning(
+    "Lower required grams means the food is more efficient for meeting the combined calorie and protein target logic."
 )
 
 
 # =========================
-# DAILY TARGET PROGRESS
+# CALORIES VS PROTEIN
 # =========================
-st.markdown("## Daily Target Progress")
+st.markdown("## Calories vs Protein Relationship")
 
-progress_items = [
-    (
-        "Calories",
-        total_calories,
-        st.session_state.akg_calories
-    ),
-    (
-        "Protein",
-        total_protein,
-        st.session_state.akg_protein
-    ),
-    (
-        "Fat",
-        total_fat,
-        st.session_state.akg_fat
-    ),
-    (
-        "Carbohydrates",
-        total_carbs,
-        st.session_state.akg_carbs
-    )
-]
-
-for label, consumed, target in progress_items:
-    progress_value = consumed / target
-    progress_percentage = progress_value * 100
-
-    st.write(
-        f"{label}: {consumed:.2f} / {target:.2f} "
-        f"({progress_percentage:.1f}% of daily need)"
-    )
-
-    st.progress(
-        min(float(progress_value), 1.0)
-    )
-
-
-# =========================
-# FOOD LOG TABLE
-# =========================
-st.markdown("## Food Log Table")
-
-meal_df = pd.DataFrame(
-    st.session_state.meal_log
+fig_scatter = px.scatter(
+    filtered_df,
+    x="calories",
+    y="protein",
+    size="fat",
+    color="overall_portions_combined",
+    color_continuous_scale="Greens_r",
+    hover_name="name",
+    hover_data=[
+        "calories",
+        "protein",
+        "fat",
+        "carbs",
+        "overall_portions_combined"
+    ],
+    title="Calories and Protein Distribution"
 )
 
-if meal_df.empty:
-    st.info("No food has been added today.")
-
-else:
-    table_col, action_col = st.columns([4, 1])
-
-    with table_col:
-        st.dataframe(
-            meal_df,
-            use_container_width=True
-        )
-
-        csv_data = meal_df.to_csv(
-            index=False
-        ).encode("utf-8")
-
-        st.download_button(
-            label="Download Food Log CSV",
-            data=csv_data,
-            file_name="food_log_today.csv",
-            mime="text/csv"
-        )
-
-    with action_col:
-        st.markdown("### Actions")
-
-        food_options = meal_df["Food"].unique().tolist()
-
-        selected_delete_food = st.selectbox(
-            "Select food",
-            food_options,
-            key="selected_delete_food"
-        )
-
-        if st.button("Delete Food", use_container_width=True):
-            st.session_state.meal_log = [
-                food for food in st.session_state.meal_log
-                if food["Food"] != selected_delete_food
-            ]
-
-            st.rerun()
-
-        if st.button("Clear All", use_container_width=True):
-            st.session_state.meal_log = []
-
-            st.rerun()
-
+st.plotly_chart(
+    apply_plot_theme(fig_scatter),
+    use_container_width=True
+)
 
 # =========================
 # TOP PROTEIN
@@ -1116,8 +1197,6 @@ st.plotly_chart(
     apply_plot_theme(fig_protein),
     use_container_width=True
 )
-
-
 # =========================
 # NUTRIENT DISTRIBUTION
 # =========================
@@ -1183,6 +1262,48 @@ with col4:
         use_container_width=True
     )
 
+# =========================
+# INSIGHTS
+# =========================
+st.markdown("## Key Insights")
+
+avg_cal = filtered_df["calories"].mean()
+avg_protein = filtered_df["protein"].mean()
+median_eff = filtered_df["overall_portions_combined"].median()
+
+st.markdown(
+    f"""
+    <div class="insight-card">
+        <div class="insight-title">Best efficiency candidate</div>
+        <div class="insight-text">
+            <b>{best_row['name']}</b> is the most efficient food in the current filtered data.
+            It requires approximately <b>{best_row['overall_portions_combined']:.1f} g</b>
+            to satisfy the combined calorie and protein target logic used in this dashboard.
+        </div>
+    </div>
+
+    <div class="insight-card">
+        <div class="insight-title">Protein concentration</div>
+        <div class="insight-text">
+            <b>{highest_protein_row['name']}</b> has the highest protein value in the current view,
+            with <b>{highest_protein_row['protein']:.1f} g protein per 100 g</b>.
+            This makes it useful for comparing high-protein foods against their calorie level.
+        </div>
+    </div>
+
+    <div class="insight-card">
+        <div class="insight-title">Overall nutrition pattern</div>
+        <div class="insight-text">
+            The filtered dataset has an average of <b>{avg_cal:.1f} kcal</b>
+            and <b>{avg_protein:.1f} g protein</b> per 100 g.
+            The median efficiency requirement is <b>{median_eff:.1f} g</b>,
+            so foods below this value are relatively more efficient than the typical item
+            in the selected range.
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # =========================
 # IMAGE PREVIEW
