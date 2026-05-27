@@ -1,179 +1,244 @@
-/* =========================
-   LIGHT GREEN FOOD DASHBOARD THEME
-   Save this file as: style.css
-   ========================= */
-
 :root {
-    --mint-bg: #F3FFF7;
-    --mint-bg-2: #E7F8EE;
-    --mint-card: rgba(255, 255, 255, 0.92);
-    --mint-soft: #DFF6E7;
-    --green-main: #3FAF6C;
-    --green-dark: #1F7A4B;
-    --green-text: #143D2A;
-    --green-muted: #557566;
-    --green-border: #B9E8C8;
+    --bg-main: #F6FFF9;
+    --bg-soft: #EAFBF0;
+    --bg-card: #FFFFFF;
+
+    --green-primary: #3FAF6C;
+    --green-primary-dark: #1F7A4B;
+    --green-primary-soft: #DFF6E7;
+
+    --text-main: #143D2A;
+    --text-muted: #5E7669;
+
+    --border-soft: #BFE8CC;
+    --shadow-soft: rgba(31, 122, 75, 0.09);
 }
 
 .stApp {
     background:
-        radial-gradient(circle at top left, rgba(190, 245, 207, 0.85), transparent 32%),
-        linear-gradient(135deg, var(--mint-bg) 0%, var(--mint-bg-2) 100%);
-    color: var(--green-text);
+        radial-gradient(circle at top left, rgba(198, 245, 213, 0.7), transparent 30%),
+        linear-gradient(135deg, var(--bg-main) 0%, var(--bg-soft) 100%);
+    color: var(--text-main);
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
 }
 
 .block-container {
-    padding-top: 2rem;
-    padding-bottom: 2.5rem;
     max-width: 1280px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
 }
+
+/* =========================
+   SIDEBAR
+========================= */
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #EAFBF0 0%, #D8F3E2 100%);
-    border-right: 1px solid var(--green-border);
+    background: linear-gradient(180deg, #F1FFF6 0%, #E1F7E9 100%);
+    border-right: 1px solid var(--border-soft);
 }
 
-[data-testid="stSidebar"] * {
-    color: var(--green-text) !important;
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] span {
+    color: var(--text-main) !important;
 }
+
+/* =========================
+   TYPOGRAPHY
+========================= */
 
 h1, h2, h3, h4 {
-    color: var(--green-text) !important;
+    color: var(--text-main) !important;
     font-weight: 800 !important;
+    letter-spacing: -0.02em;
 }
 
-p, label, span, div {
-    color: var(--green-text);
+p, label {
+    color: var(--text-muted);
 }
+
+hr {
+    border-color: var(--border-soft);
+}
+
+/* =========================
+   HERO CARD
+========================= */
 
 .hero-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(226,248,235,0.92));
-    border: 1px solid var(--green-border);
+    background: linear-gradient(135deg, #FFFFFF 0%, #ECFAF1 100%);
+    border: 1px solid var(--border-soft);
     border-radius: 28px;
-    padding: 28px 32px;
-    box-shadow: 0 14px 36px rgba(31, 122, 75, 0.10);
-    margin-bottom: 22px;
+    padding: 30px 34px;
+    box-shadow: 0 14px 34px var(--shadow-soft);
+    margin-bottom: 24px;
 }
 
 .hero-title {
-    font-size: 2.25rem;
-    line-height: 1.1;
-    margin-bottom: 8px;
-    color: var(--green-text);
+    font-size: 2.2rem;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    color: var(--text-main);
     font-weight: 900;
+    letter-spacing: -0.03em;
 }
 
 .hero-subtitle {
-    color: var(--green-muted);
+    color: var(--text-muted);
     font-size: 1.02rem;
-    max-width: 900px;
+    line-height: 1.6;
+    max-width: 880px;
 }
 
+/* =========================
+   PROFILE CARD
+========================= */
+
 .profile-card {
-    background: linear-gradient(135deg, #FFFFFF 0%, #EAFBF0 100%);
-    border: 1px solid var(--green-border);
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
     border-radius: 24px;
-    padding: 22px;
-    margin: 16px 0 24px 0;
-    box-shadow: 0 10px 26px rgba(31, 122, 75, 0.08);
+    padding: 24px;
+    margin: 16px 0 26px 0;
+    box-shadow: 0 10px 28px var(--shadow-soft);
 }
 
 .profile-title {
     font-size: 1.35rem;
     font-weight: 900;
-    color: var(--green-dark);
-    margin-bottom: 8px;
+    color: var(--green-primary-dark);
+    margin-bottom: 10px;
 }
 
 .profile-text {
-    color: var(--green-muted);
-    line-height: 1.55;
+    color: var(--text-muted);
+    line-height: 1.65;
 }
 
+/* =========================
+   INSIGHT CARD
+========================= */
+
 .insight-card {
-    background: linear-gradient(135deg, #FFFFFF 0%, #EAFBF0 100%);
-    border-left: 6px solid var(--green-main);
+    background: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-left: 6px solid var(--green-primary);
     border-radius: 20px;
     padding: 18px 20px;
     margin-bottom: 14px;
-    box-shadow: 0 10px 24px rgba(31, 122, 75, 0.08);
+    box-shadow: 0 10px 24px var(--shadow-soft);
 }
 
 .insight-title {
-    font-weight: 800;
-    color: var(--green-dark);
+    font-weight: 850;
+    color: var(--green-primary-dark);
     margin-bottom: 6px;
 }
 
 .insight-text {
-    color: var(--green-muted);
-    line-height: 1.55;
+    color: var(--text-muted);
+    line-height: 1.6;
 }
+
+/* =========================
+   METRICS
+========================= */
 
 [data-testid="metric-container"] {
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid var(--green-border);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--border-soft);
     padding: 18px;
     border-radius: 22px;
-    box-shadow: 0 10px 24px rgba(31, 122, 75, 0.09);
+    box-shadow: 0 10px 24px var(--shadow-soft);
 }
 
-[data-testid="metric-container"] label,
+[data-testid="metric-container"] label {
+    color: var(--text-muted) !important;
+    font-weight: 650 !important;
+}
+
 [data-testid="metric-container"] div {
-    color: var(--green-text) !important;
+    color: var(--text-main) !important;
 }
 
-.stButton > button,
-.stDownloadButton > button {
-    background: linear-gradient(90deg, #7BD89B, #3FAF6C) !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 14px !important;
-    padding: 0.6rem 1.15rem !important;
-    font-weight: 800 !important;
-    box-shadow: 0 8px 18px rgba(63, 175, 108, 0.25);
-    transition: 0.2s ease-in-out;
-}
-
-.stButton > button:hover,
-.stDownloadButton > button:hover {
-    transform: translateY(-2px);
-    filter: brightness(1.02);
-}
+/* =========================
+   INPUTS
+========================= */
 
 .stTextInput input,
 .stNumberInput input,
 .stSelectbox div[data-baseweb="select"] {
     background-color: #FFFFFF !important;
-    color: var(--green-text) !important;
+    color: var(--text-main) !important;
     border-radius: 14px !important;
-    border: 1px solid var(--green-border) !important;
+    border: 1px solid var(--border-soft) !important;
+    box-shadow: none !important;
 }
 
-.stSlider [data-baseweb="slider"] div {
-    color: var(--green-main) !important;
+.stTextInput input:focus,
+.stNumberInput input:focus {
+    border-color: var(--green-primary) !important;
 }
 
-[data-testid="stDataFrame"] {
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid var(--green-border);
-    box-shadow: 0 8px 22px rgba(31, 122, 75, 0.08);
+/* =========================
+   SLIDER
+========================= */
+
+.stSlider [data-baseweb="slider"] {
+    color: var(--green-primary) !important;
 }
+
+
+/* =========================
+   PROGRESS BAR
+========================= */
 
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, #A7EFC0, #3FAF6C) !important;
+    background: linear-gradient(90deg, #A7EFC0, var(--green-primary)) !important;
 }
 
-.stAlert {
+/* =========================
+   ALERTS / NOTIFICATIONS
+========================= */
+
+/* info, warning, success, error */
+div[data-testid="stAlert"] {
+    background: linear-gradient(135deg, #EAFBF0 0%, #DFF6E7 100%) !important;
+    border: 1px solid var(--border-soft) !important;
+    border-left: 6px solid var(--green-primary) !important;
     border-radius: 18px !important;
-    border: 1px solid var(--green-border) !important;
+    box-shadow: 0 10px 24px var(--shadow-soft) !important;
 }
+
+/* Text alert */
+div[data-testid="stAlert"] p,
+div[data-testid="stAlert"] div,
+div[data-testid="stAlert"] span {
+    color: var(--green-primary-dark) !important;
+    font-weight: 650 !important;
+}
+
+/* Icon alert */
+div[data-testid="stAlert"] svg {
+    color: var(--green-primary-dark) !important;
+    fill: var(--green-primary-dark) !important;
+}
+
+/* =========================
+   IMAGES
+========================= */
 
 img {
     border-radius: 20px;
-    box-shadow: 0 10px 26px rgba(31, 122, 75, 0.15);
+    box-shadow: 0 10px 26px rgba(31, 122, 75, 0.13);
 }
+
+/* =========================
+   SCROLLBAR
+========================= */
 
 ::-webkit-scrollbar {
     width: 10px;
@@ -184,87 +249,227 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #9DDFB1;
+    background: #A8E3BB;
     border-radius: 20px;
 }
 
-.food-title {
-    font-size: 32px;
+::-webkit-scrollbar-thumb:hover {
+    background: var(--green-primary);
+}
+
+/* =========================
+   FOOD LOG TABLE
+========================= */
+
+.food-log-wrapper {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--border-soft);
+    border-radius: 24px;
+    padding: 14px;
+    box-shadow: 0 12px 28px var(--shadow-soft);
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+.food-log-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    font-size: 0.98rem;
+}
+
+.food-log-table thead tr {
+    background: linear-gradient(90deg, #DFF6E7, #C8EFD6);
+}
+
+.food-log-table th {
+    color: var(--green-primary-dark);
+    text-align: left;
+    padding: 16px 18px;
+    font-weight: 850;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.food-log-table td {
+    padding: 16px 18px;
+    color: var(--text-main);
+    border-bottom: 1px solid #E3F4E9;
+    background: #FFFFFF;
+}
+
+.food-log-table tbody tr:nth-child(even) td {
+    background: #F4FFF8;
+}
+
+.food-log-table tbody tr:hover td {
+    background: #EAFBF0;
+}
+
+.food-log-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.food-name-cell {
+    font-weight: 850;
+    color: var(--green-primary-dark) !important;
+}
+
+/* =========================
+   CHECKER RESULT CARDS
+========================= */
+
+.checker-result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+    margin-bottom: 34px;
+}
+
+.checker-result-card {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--border-soft);
+    border-radius: 22px;
+    padding: 20px 22px;
+    box-shadow: 0 10px 24px var(--shadow-soft);
+}
+
+.checker-label {
+    font-size: 0.95rem;
     font-weight: 700;
-    margin-bottom: 18px;
-    margin-top: 5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
 }
 
-.food-title-added {
-    font-size: 32px;
+.checker-value {
+    font-size: 2.25rem;
+    font-weight: 850;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.checker-unit {
+    font-size: 1rem;
     font-weight: 700;
-    margin-bottom: 10px;
+    color: var(--green-primary-dark);
+    margin-top: 4px;
 }
 
-.nutrition-card-calories {
-    background: #CAD2C5;
-    padding: 10px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    text-align: center;
-    color: black;
-    font-weight: 600;
-    min-height: 72px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+.checker-percent {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #DFF6E7;
+    color: var(--green-primary-dark);
+    font-size: 0.9rem;
+    font-weight: 700;
 }
 
-.nutrition-card-protein {
-    background: #84A98C;
-    padding: 10px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    text-align: center;
-    color: white;
-    font-weight: 600;
-    min-height: 72px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+.section-gap {
+    height: 18px;
 }
 
-.nutrition-card-fat {
-    background: #A3B18A;
-    padding: 10px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    text-align: center;
-    color: black;
-    font-weight: 600;
-    min-height: 72px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+/* Responsive */
+@media (max-width: 900px) {
+    .checker-result-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
-.nutrition-card-carbs {
-    background: #B7B7A4;
-    padding: 10px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    text-align: center;
-    color: white;
-    font-weight: 600;
-    min-height: 72px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+@media (max-width: 520px) {
+    .checker-result-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
-.add-button-space {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 120px;
-    padding-top: 10px;
+/* =========================
+   BUTTONS
+========================= */
+
+/* Base button style */
+.stButton > button,
+.stFormSubmitButton > button {
+    border-radius: 14px !important;
+    padding: 0.65rem 1.2rem !important;
+    font-weight: 800 !important;
+    transition: all 0.2s ease-in-out !important;
 }
 
-.delete-button-space {
-    height: 42px;
+/* Apply Profile + Add Food Today */
+.stButton > button[kind="primary"],
+.stFormSubmitButton > button[kind="primary"],
+.stFormSubmitButton > button {
+    background: linear-gradient(135deg, #3FAF6C, #1F7A4B) !important;
+    color: #143D2A FFFF !important;
+    border: 1px solid #2F9B5E !important;
+    box-shadow: 0 12px 26px rgba(31, 122, 75, 0.22) !important;
+}
+
+/* Primary button text */
+.stButton > button[kind="primary"] p,
+.stButton > button[kind="primary"] span,
+.stFormSubmitButton > button p,
+.stFormSubmitButton > button span {
+    color: #143D2A  !important;
+    font-weight: 800 !important;
+}
+
+/* Primary hover */
+.stButton > button[kind="primary"]:hover,
+.stFormSubmitButton > button:hover {
+    background: linear-gradient(135deg, #45BF76, #1B6E43) !important;
+    color: #143D2A !important;
+    border-color: #1F7A4B !important;
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px rgba(31, 122, 75, 0.28) !important;
+}
+
+/* Danger buttons: Delete Food + Clear All */
+.stButton > button[kind="secondary"] {
+    background: #FFF1F1 !important;
+    color: #A94747 !important;
+    border: 1px solid #F3B8B8 !important;
+    box-shadow: 0 10px 22px rgba(169, 71, 71, 0.10) !important;
+}
+
+/* Danger button text */
+.stButton > button[kind="secondary"] p,
+.stButton > button[kind="secondary"] span {
+    color: #A94747 !important;
+    font-weight: 800 !important;
+}
+
+/* Danger hover */
+.stButton > button[kind="secondary"]:hover {
+    background: #FFE5E5 !important;
+    color: #8F3030 !important;
+    border-color: #E99A9A !important;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 26px rgba(169, 71, 71, 0.16) !important;
+}
+
+/* Danger hover text */
+.stButton > button[kind="secondary"]:hover p,
+.stButton > button[kind="secondary"]:hover span {
+    color: #8F3030 !important;
+}
+
+/* Disabled button */
+.stButton > button:disabled,
+.stFormSubmitButton > button:disabled {
+    background: #DCEFE4 !important;
+    color: #7C9B8A !important;
+    border: 1px solid #C8E3D2 !important;
+    box-shadow: none !important;
+}
+
+/* Disabled button text */
+.stButton > button:disabled p,
+.stButton > button:disabled span,
+.stFormSubmitButton > button:disabled p,
+.stFormSubmitButton > button:disabled span {
+    color: #7C9B8A !important;
 }
