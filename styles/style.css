@@ -2,21 +2,51 @@
     --bg-main: #F6FFF9;
     --bg-soft: #EAFBF0;
     --bg-card: #FFFFFF;
+    --bg-card-soft: rgba(255, 255, 255, 0.94);
+    --bg-card-glass: rgba(255, 255, 255, 0.72);
 
     --green-primary: #3FAF6C;
     --green-primary-dark: #1F7A4B;
     --green-primary-soft: #DFF6E7;
+    --green-progress-light: #A7EFC0;
+    --green-sidebar-light: #F1FFF6;
+    --green-sidebar-soft: #E1F7E9;
+    --green-table-head: #C8EFD6;
+    --green-table-row: #F4FFF8;
+    --green-glow: rgba(198, 245, 213, 0.7);
 
     --text-main: #143D2A;
     --text-muted: #5E7669;
 
     --border-soft: #BFE8CC;
+    --border-table: #E3F4E9;
+
     --shadow-soft: rgba(31, 122, 75, 0.09);
+    --shadow-medium: rgba(31, 122, 75, 0.13);
+    --shadow-button: rgba(31, 122, 75, 0.22);
+    --shadow-button-hover: rgba(31, 122, 75, 0.28);
+
+    --danger-main: #A94747;
+    --danger-dark: #8F3030;
+    --danger-soft: #FFF1F1;
+    --danger-hover: #FFE5E5;
+    --danger-border: #F3B8B8;
+    --danger-border-hover: #E99A9A;
+    --danger-shadow: rgba(169, 71, 71, 0.10);
+    --danger-shadow-hover: rgba(169, 71, 71, 0.16);
+
+    --disabled-bg: #DCEFE4;
+    --disabled-text: #7C9B8A;
+    --disabled-border: #C8E3D2;
 }
+
+/* =========================
+   GLOBAL
+========================= */
 
 .stApp {
     background:
-        radial-gradient(circle at top left, rgba(198, 245, 213, 0.7), transparent 30%),
+        radial-gradient(circle at top left, var(--green-glow), transparent 30%),
         linear-gradient(135deg, var(--bg-main) 0%, var(--bg-soft) 100%);
     color: var(--text-main);
     font-family: "Inter", "Segoe UI", Arial, sans-serif;
@@ -33,7 +63,7 @@
 ========================= */
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #F1FFF6 0%, #E1F7E9 100%);
+    background: linear-gradient(180deg, var(--green-sidebar-light) 0%, var(--green-sidebar-soft) 100%);
     border-right: 1px solid var(--border-soft);
 }
 
@@ -69,7 +99,7 @@ hr {
 ========================= */
 
 .hero-card {
-    background: linear-gradient(135deg, #FFFFFF 0%, #ECFAF1 100%);
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-soft) 100%);
     border: 1px solid var(--border-soft);
     border-radius: 28px;
     padding: 30px 34px;
@@ -123,7 +153,7 @@ hr {
 ========================= */
 
 .insight-card {
-    background: #FFFFFF;
+    background: var(--bg-card);
     border: 1px solid var(--border-soft);
     border-left: 6px solid var(--green-primary);
     border-radius: 20px;
@@ -144,34 +174,13 @@ hr {
 }
 
 /* =========================
-   METRICS
-========================= */
-
-[data-testid="metric-container"] {
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid var(--border-soft);
-    padding: 18px;
-    border-radius: 22px;
-    box-shadow: 0 10px 24px var(--shadow-soft);
-}
-
-[data-testid="metric-container"] label {
-    color: var(--text-muted) !important;
-    font-weight: 650 !important;
-}
-
-[data-testid="metric-container"] div {
-    color: var(--text-main) !important;
-}
-
-/* =========================
    INPUTS
 ========================= */
 
 .stTextInput input,
 .stNumberInput input,
 .stSelectbox div[data-baseweb="select"] {
-    background-color: #FFFFFF !important;
+    background-color: var(--bg-card) !important;
     color: var(--text-main) !important;
     border-radius: 14px !important;
     border: 1px solid var(--border-soft) !important;
@@ -183,6 +192,12 @@ hr {
     border-color: var(--green-primary) !important;
 }
 
+.stTextInput input:hover,
+.stNumberInput input:hover,
+.stSelectbox div[data-baseweb="select"]:hover {
+    border-color: var(--green-primary) !important;
+}
+
 /* =========================
    SLIDER
 ========================= */
@@ -191,29 +206,26 @@ hr {
     color: var(--green-primary) !important;
 }
 
-
 /* =========================
    PROGRESS BAR
 ========================= */
 
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, #A7EFC0, var(--green-primary)) !important;
+    background: linear-gradient(90deg, var(--green-progress-light), var(--green-primary)) !important;
 }
 
 /* =========================
    ALERTS / NOTIFICATIONS
 ========================= */
 
-/* info, warning, success, error */
 div[data-testid="stAlert"] {
-    background: linear-gradient(135deg, #EAFBF0 0%, #DFF6E7 100%) !important;
+    background: linear-gradient(135deg, var(--bg-soft) 0%, var(--green-primary-soft) 100%) !important;
     border: 1px solid var(--border-soft) !important;
     border-left: 6px solid var(--green-primary) !important;
     border-radius: 18px !important;
     box-shadow: 0 10px 24px var(--shadow-soft) !important;
 }
 
-/* Text alert */
 div[data-testid="stAlert"] p,
 div[data-testid="stAlert"] div,
 div[data-testid="stAlert"] span {
@@ -221,7 +233,6 @@ div[data-testid="stAlert"] span {
     font-weight: 650 !important;
 }
 
-/* Icon alert */
 div[data-testid="stAlert"] svg {
     color: var(--green-primary-dark) !important;
     fill: var(--green-primary-dark) !important;
@@ -233,7 +244,7 @@ div[data-testid="stAlert"] svg {
 
 img {
     border-radius: 20px;
-    box-shadow: 0 10px 26px rgba(31, 122, 75, 0.13);
+    box-shadow: 0 10px 26px var(--shadow-medium);
 }
 
 /* =========================
@@ -245,11 +256,11 @@ img {
 }
 
 ::-webkit-scrollbar-track {
-    background: #EAFBF0;
+    background: var(--bg-soft);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #A8E3BB;
+    background: var(--green-progress-light);
     border-radius: 20px;
 }
 
@@ -258,11 +269,104 @@ img {
 }
 
 /* =========================
+   ADDED FOOD TODAY
+========================= */
+
+.added-food-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-soft) 100%);
+    border: 1px solid var(--border-soft);
+    border-radius: 24px;
+    padding: 24px;
+    margin: 18px 0 28px 0;
+    box-shadow: 0 12px 28px var(--shadow-soft);
+}
+
+.added-food-title {
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: var(--green-primary-dark);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+
+.added-food-text {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+div[data-testid="stRadio"] {
+    margin-bottom: 12px;
+}
+
+div[data-testid="stRadio"] label p {
+    color: var(--text-main) !important;
+    font-weight: 700 !important;
+}
+
+div[data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 22px;
+}
+
+div[data-testid="stRadio"] div[role="radiogroup"] label {
+    color: var(--text-main) !important;
+    font-weight: 700 !important;
+}
+
+div[data-testid="stRadio"] input {
+    accent-color: var(--green-primary);
+}
+
+
+
+/* =========================
+   FILE UPLOADER
+========================= */
+
+.stFileUploader {
+    margin-top: 2px;
+}
+
+.stFileUploader label p {
+    color: var(--text-main) !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+}
+
+.stFileUploader section {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-soft) !important;
+    border-radius: 16px !important;
+    padding: 14px 16px !important;
+    box-shadow: 0 8px 18px var(--shadow-soft) !important;
+}
+
+.stFileUploader section:hover {
+    border-color: var(--green-primary) !important;
+}
+
+.stFileUploader button {
+    background: var(--green-primary-soft) !important;
+    color: var(--green-primary-dark) !important;
+    border: 1px solid var(--border-soft) !important;
+    border-radius: 12px !important;
+    padding: 0.4rem 0.75rem !important;
+    font-weight: 800 !important;
+    box-shadow: none !important;
+}
+
+.stFileUploader button:hover {
+    background: var(--bg-soft) !important;
+    border-color: var(--green-primary) !important;
+    color: var(--green-primary-dark) !important;
+}
+
+/* =========================
    FOOD LOG TABLE
 ========================= */
 
 .food-log-wrapper {
-    background: rgba(255, 255, 255, 0.72);
+    background: var(--bg-card-glass);
     border: 1px solid var(--border-soft);
     border-radius: 24px;
     padding: 14px;
@@ -281,7 +385,7 @@ img {
 }
 
 .food-log-table thead tr {
-    background: linear-gradient(90deg, #DFF6E7, #C8EFD6);
+    background: linear-gradient(90deg, var(--green-primary-soft), var(--green-table-head));
 }
 
 .food-log-table th {
@@ -295,16 +399,16 @@ img {
 .food-log-table td {
     padding: 16px 18px;
     color: var(--text-main);
-    border-bottom: 1px solid #E3F4E9;
-    background: #FFFFFF;
+    border-bottom: 1px solid var(--border-table);
+    background: var(--bg-card);
 }
 
 .food-log-table tbody tr:nth-child(even) td {
-    background: #F4FFF8;
+    background: var(--green-table-row);
 }
 
 .food-log-table tbody tr:hover td {
-    background: #EAFBF0;
+    background: var(--bg-soft);
 }
 
 .food-log-table tbody tr:last-child td {
@@ -329,7 +433,7 @@ img {
 }
 
 .checker-result-card {
-    background: rgba(255, 255, 255, 0.94);
+    background: var(--bg-card-soft);
     border: 1px solid var(--border-soft);
     border-radius: 22px;
     padding: 20px 22px;
@@ -362,34 +466,16 @@ img {
     margin-top: 12px;
     padding: 6px 10px;
     border-radius: 999px;
-    background: #DFF6E7;
+    background: var(--green-primary-soft);
     color: var(--green-primary-dark);
     font-size: 0.9rem;
     font-weight: 700;
-}
-
-.section-gap {
-    height: 18px;
-}
-
-/* Responsive */
-@media (max-width: 900px) {
-    .checker-result-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 520px) {
-    .checker-result-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* =========================
    BUTTONS
 ========================= */
 
-/* Base button style */
 .stButton > button,
 .stFormSubmitButton > button {
     border-radius: 14px !important;
@@ -398,78 +484,113 @@ img {
     transition: all 0.2s ease-in-out !important;
 }
 
-/* Apply Profile + Add Food Today */
+/* Primary buttons: Apply Profile + Add Food Today */
 .stButton > button[kind="primary"],
 .stFormSubmitButton > button[kind="primary"],
 .stFormSubmitButton > button {
-    background: linear-gradient(135deg, #3FAF6C, #1F7A4B) !important;
-    color: #143D2A FFFF !important;
-    border: 1px solid #2F9B5E !important;
-    box-shadow: 0 12px 26px rgba(31, 122, 75, 0.22) !important;
+    background: linear-gradient(135deg, var(--green-primary), var(--green-primary-dark)) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--green-primary-dark) !important;
+    box-shadow: 0 12px 26px var(--shadow-button) !important;
 }
 
-/* Primary button text */
 .stButton > button[kind="primary"] p,
 .stButton > button[kind="primary"] span,
 .stFormSubmitButton > button p,
 .stFormSubmitButton > button span {
-    color: #143D2A  !important;
+    color: var(--text-main) !important;
     font-weight: 800 !important;
 }
 
-/* Primary hover */
 .stButton > button[kind="primary"]:hover,
 .stFormSubmitButton > button:hover {
-    background: linear-gradient(135deg, #45BF76, #1B6E43) !important;
-    color: #143D2A !important;
-    border-color: #1F7A4B !important;
+    background: linear-gradient(135deg, var(--green-primary), var(--green-primary-dark)) !important;
+    color: var(--text-main) !important;
+    border-color: var(--green-primary-dark) !important;
     transform: translateY(-1px);
-    box-shadow: 0 16px 30px rgba(31, 122, 75, 0.28) !important;
+    box-shadow: 0 16px 30px var(--shadow-button-hover) !important;
+}
+
+.stButton > button[kind="primary"]:hover p,
+.stButton > button[kind="primary"]:hover span,
+.stFormSubmitButton > button:hover p,
+.stFormSubmitButton > button:hover span {
+    color: var(--text-main) !important;
 }
 
 /* Danger buttons: Delete Food + Clear All */
 .stButton > button[kind="secondary"] {
-    background: #FFF1F1 !important;
-    color: #A94747 !important;
-    border: 1px solid #F3B8B8 !important;
-    box-shadow: 0 10px 22px rgba(169, 71, 71, 0.10) !important;
+    background: var(--danger-soft) !important;
+    color: var(--danger-main) !important;
+    border: 1px solid var(--danger-border) !important;
+    box-shadow: 0 10px 22px var(--danger-shadow) !important;
 }
 
-/* Danger button text */
 .stButton > button[kind="secondary"] p,
 .stButton > button[kind="secondary"] span {
-    color: #A94747 !important;
+    color: var(--danger-main) !important;
     font-weight: 800 !important;
 }
 
-/* Danger hover */
 .stButton > button[kind="secondary"]:hover {
-    background: #FFE5E5 !important;
-    color: #8F3030 !important;
-    border-color: #E99A9A !important;
+    background: var(--danger-hover) !important;
+    color: var(--danger-dark) !important;
+    border-color: var(--danger-border-hover) !important;
     transform: translateY(-1px);
-    box-shadow: 0 14px 26px rgba(169, 71, 71, 0.16) !important;
+    box-shadow: 0 14px 26px var(--danger-shadow-hover) !important;
 }
 
-/* Danger hover text */
 .stButton > button[kind="secondary"]:hover p,
 .stButton > button[kind="secondary"]:hover span {
-    color: #8F3030 !important;
+    color: var(--danger-dark) !important;
 }
 
-/* Disabled button */
+/* Disabled buttons */
 .stButton > button:disabled,
 .stFormSubmitButton > button:disabled {
-    background: #DCEFE4 !important;
-    color: #7C9B8A !important;
-    border: 1px solid #C8E3D2 !important;
+    background: var(--disabled-bg) !important;
+    color: var(--disabled-text) !important;
+    border: 1px solid var(--disabled-border) !important;
     box-shadow: none !important;
 }
 
-/* Disabled button text */
 .stButton > button:disabled p,
 .stButton > button:disabled span,
 .stFormSubmitButton > button:disabled p,
 .stFormSubmitButton > button:disabled span {
-    color: #7C9B8A !important;
+    color: var(--disabled-text) !important;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+    .checker-result-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hero-card,
+    .profile-card,
+    .added-food-card {
+        padding: 22px;
+    }
+
+    .hero-title {
+        font-size: 1.85rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .checker-result-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-title {
+        font-size: 1.6rem;
+    }
+
+    .checker-value {
+        font-size: 1.9rem;
+    }
 }
