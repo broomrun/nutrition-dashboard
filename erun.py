@@ -9,6 +9,8 @@ import plotly.express as px
 import streamlit as st
 from PIL import Image
 import streamlit.components.v1 as components
+import tensorflow as tf
+import keras
 
 # =========================
 # PAGE CONFIG
@@ -23,15 +25,90 @@ st.set_page_config(
 # PATH CONFIG
 # =========================
 BASE_DIR = Path(__file__).resolve().parent
-DATA_PATH = BASE_DIR / "data" / "Foodimages (4).csv"
-AKG_PATH = BASE_DIR / "data" / "akg (2).csv"
+DATA_PATH = BASE_DIR / "data" / "nutrition_table_cleaned.csv"
+AKG_PATH = BASE_DIR / "data" / "akg.csv"
 STYLE_PATH = BASE_DIR / "styles/style.css"
 ASSETS_DIR = BASE_DIR / "assets"
+MODEL_PATH = BASE_DIR / "models" / "best_nutrivision_cnn_food101_akg.keras"
 
+@keras.saving.register_keras_serializable(package="NutriVision")
+class NutritionFromClassProbability(keras.layers.Layer):
+    def __init__(self, nutrition_table_norm, **kwargs):
+        super().__init__(**kwargs)
+
+        nutrition_table_norm = np.array(
+            nutrition_table_norm,
+            dtype="float32"
+        )
+
+        self.nutrition_table_norm = self.add_weight(
+            name="nutrition_table_norm",
+            shape=nutrition_table_norm.shape,
+            initializer=keras.initializers.Constant(nutrition_table_norm),
+            trainable=False
+        )
+
+    def call(self, class_probs):
+        return tf.matmul(class_probs, self.nutrition_table_norm)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "nutrition_table_norm": self.nutrition_table_norm.numpy().tolist()
+        })
+        return config
+
+@keras.saving.register_keras_serializable(package="NutriVision")
+class WeightedNutritionMAELoss(keras.losses.Loss):
+    def __init__(self, nutrient_weights=None, **kwargs):
+        super().__init__(**kwargs)
+
+        if nutrient_weights is None:
+            nutrient_weights = [1.0] * 8
+
+        self.nutrient_weights = tf.constant(
+            nutrient_weights,
+            dtype=tf.float32
+        )
+
+    def call(self, y_true, y_pred):
+        error = tf.abs(y_true - y_pred)
+        weighted_error = error * self.nutrient_weights
+        return tf.reduce_mean(weighted_error)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "nutrient_weights": self.nutrient_weights.numpy().tolist()
+        })
+        return config
+    
 # LOAD AKG
 @st.cache_data
 def load_akg_data(csv_path: Path) -> pd.DataFrame:
-    return pd.read_csv(csv_path)
+    akg_df = pd.read_csv(csv_path)
+
+    akg_df.columns = [
+        col.strip().lower().replace(" ", "_")
+        for col in akg_df.columns
+    ]
+
+    akg_column_map = {
+        "calories_kcal": "calories",
+        "protein_g": "protein",
+        "fat_g": "fat",
+        "carbs_g": "carbs",
+        "fiber_g": "fiber",
+        "calcium_mg": "calcium",
+        "iron_mg": "iron",
+        "vitamin_c_mg": "vitamin_c",
+    }
+
+    akg_df = akg_df.rename(
+        columns={col: akg_column_map.get(col, col) for col in akg_df.columns}
+    )
+
+    return akg_df
 
 # =========================
 # LOAD CSS
@@ -44,6 +121,72 @@ def load_css(css_path: Path) -> None:
         )
         
 load_css(STYLE_PATH)
+
+def load_food_model(model_path: Path):
+    if not model_path.exists():
+        st.error(
+            "Model file was not found. Put `best_nutrivision_cnn_food101_akg.keras` inside the `models` folder."
+        )
+        st.stop()
+
+    custom_objects = {
+        "NutritionFromClassProbability": NutritionFromClassProbability,
+        "NutriVision>NutritionFromClassProbability": NutritionFromClassProbability,
+        "WeightedNutritionMAELoss": WeightedNutritionMAELoss,
+        "NutriVision>WeightedNutritionMAELoss": WeightedNutritionMAELoss,
+    }
+
+    try:
+        with keras.saving.custom_object_scope(custom_objects):
+            model = keras.models.load_model(
+                str(model_path),
+                custom_objects=custom_objects,
+                compile=False,
+                safe_mode=False
+            )
+
+        return model
+
+    except Exception as e:
+        st.error("Model gagal dimuat. Ini detail error aslinya:")
+        st.exception(e)
+        st.stop()
+
+FOOD101_CLASSES = [
+    "apple_pie", "baby_back_ribs", "baklava", "beef_carpaccio", "beef_tartare",
+    "beet_salad", "beignets", "bibimbap", "bread_pudding", "breakfast_burrito",
+    "bruschetta", "caesar_salad", "cannoli", "caprese_salad", "carrot_cake",
+    "ceviche", "cheesecake", "cheese_plate", "chicken_curry", "chicken_quesadilla",
+    "chicken_wings", "chocolate_cake", "chocolate_mousse", "churros", "clam_chowder",
+    "club_sandwich", "crab_cakes", "creme_brulee", "croque_madame", "cup_cakes",
+    "deviled_eggs", "donuts", "dumplings", "edamame", "eggs_benedict",
+    "escargots", "falafel", "filet_mignon", "fish_and_chips", "foie_gras",
+    "french_fries", "french_onion_soup", "french_toast", "fried_calamari",
+    "fried_rice", "frozen_yogurt", "garlic_bread", "gnocchi", "greek_salad",
+    "grilled_cheese_sandwich", "grilled_salmon", "guacamole", "gyoza",
+    "hamburger", "hot_and_sour_soup", "hot_dog", "huevos_rancheros",
+    "hummus", "ice_cream", "lasagna", "lobster_bisque", "lobster_roll_sandwich",
+    "macaroni_and_cheese", "macarons", "miso_soup", "mussels", "nachos",
+    "omelette", "onion_rings", "oysters", "pad_thai", "paella",
+    "pancakes", "panna_cotta", "peking_duck", "pho", "pizza",
+    "pork_chop", "poutine", "prime_rib", "pulled_pork_sandwich", "ramen",
+    "ravioli", "red_velvet_cake", "risotto", "samosa", "sashimi",
+    "scallops", "seaweed_salad", "shrimp_and_grits", "spaghetti_bolognese",
+    "spaghetti_carbonara", "spring_rolls", "steak", "strawberry_shortcake",
+    "sushi", "tacos", "takoyaki", "tiramisu", "tuna_tartare",
+    "waffles"
+]
+
+def preprocess_uploaded_image(uploaded_file):
+    image = Image.open(uploaded_file).convert("RGB")
+    image = image.resize((224, 224))
+
+    img_array = np.array(image).astype("float32")
+    img_array = np.expand_dims(img_array, axis=0)
+
+    return image, img_array
+
+
 
 # SESSION STATE
 def initialize_session_state(akg_df: pd.DataFrame) -> None:
@@ -73,6 +216,10 @@ def initialize_session_state(akg_df: pd.DataFrame) -> None:
         st.session_state.akg_protein = default_akg["protein"]
         st.session_state.akg_fat = default_akg["fat"]
         st.session_state.akg_carbs = default_akg["carbs"]
+        st.session_state.akg_fiber = default_akg["fiber"]
+        st.session_state.akg_calcium = default_akg["calcium"]
+        st.session_state.akg_iron = default_akg["iron"]
+        st.session_state.akg_vitamin_c = default_akg["vitamin_c"]
 
 
 # =========================
@@ -84,30 +231,33 @@ def load_data(csv_path: Path) -> pd.DataFrame:
 
 
 def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Make the app tolerant to slightly different column names.
-    """
-
     column_map = {
         "foodname": "name",
         "food_name": "name",
         "foodname_100g": "name",
         "nama_makanan": "name",
+        "class_name": "name",
+
+        "calories_kcal": "calories",
+        "protein_g": "protein",
+        "fat_g": "fat",
+        "carbs_g": "carbs",
+
+        "fiber_g": "fiber",
+        "calcium_mg": "calcium",
+        "iron_mg": "iron",
+        "vitamin_c_mg": "vitamin_c",
+
         "total_fat": "fat",
         "lemak": "fat",
         "carbohydrates": "carbs",
         "carbohydrate": "carbs",
         "karbohidrat": "carbs",
-        "image": "image_path",
-        "img_path": "image_path",
-        "path": "image_path",
     }
 
     df = df.copy()
     df.columns = [col.strip() for col in df.columns]
-    df = df.rename(
-        columns={col: column_map.get(col, col) for col in df.columns}
-    )
+    df = df.rename(columns={col: column_map.get(col, col) for col in df.columns})
 
     return df
 
@@ -121,7 +271,10 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
         "protein",
         "fat",
         "carbs",
-        "image_path"
+        "fiber",
+        "calcium",
+        "iron",
+        "vitamin_c",
     ]
 
     missing_columns = [
@@ -133,25 +286,34 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
         st.error(f"Missing required columns: {missing_columns}")
         st.stop()
 
-    for col in ["calories", "protein", "fat", "carbs"]:
-        df[col] = pd.to_numeric(
-            df[col],
-            errors="coerce"
-        )
+    nutrition_columns = [
+        "calories",
+        "protein",
+        "fat",
+        "carbs",
+        "fiber",
+        "calcium",
+        "iron",
+        "vitamin_c",
+    ]
+
+    for col in nutrition_columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
     df["name"] = df["name"].astype(str).str.strip()
 
-    df = df.dropna(
-        subset=["name", "calories", "protein", "fat", "carbs"]
-    )
-
+    df = df.dropna(subset=["name"] + nutrition_columns)
     df = df[df["name"] != ""].copy()
 
     df = df[
         (df["calories"] > 0) &
         (df["protein"] >= 0) &
         (df["fat"] >= 0) &
-        (df["carbs"] >= 0)
+        (df["carbs"] >= 0) &
+        (df["fiber"] >= 0) &
+        (df["calcium"] >= 0) &
+        (df["iron"] >= 0) &
+        (df["vitamin_c"] >= 0)
     ].copy()
 
     return df
@@ -190,6 +352,10 @@ def calculate_user_akg(
     protein = float(base_row["protein"])
     fat = float(base_row["fat"])
     carbs = float(base_row["carbs"])
+    fiber = float(base_row["fiber"])
+    calcium = float(base_row["calcium"])
+    iron = float(base_row["iron"])
+    vitamin_c = float(base_row["vitamin_c"])
 
     if gender == "Female" and special_condition == "Pregnant":
         extra_row = akg_df[
@@ -204,6 +370,10 @@ def calculate_user_akg(
             protein += float(extra_row["protein"])
             fat += float(extra_row["fat"])
             carbs += float(extra_row["carbs"])
+            fiber += float(extra_row["fiber"])
+            calcium += float(extra_row["calcium"])
+            iron += float(extra_row["iron"])
+            vitamin_c += float(extra_row["vitamin_c"])
 
     elif gender == "Female" and special_condition == "Breastfeeding":
         extra_row = akg_df[
@@ -218,13 +388,21 @@ def calculate_user_akg(
             protein += float(extra_row["protein"])
             fat += float(extra_row["fat"])
             carbs += float(extra_row["carbs"])
+            fiber += float(extra_row["fiber"])
+            calcium += float(extra_row["calcium"])
+            iron += float(extra_row["iron"])
+            vitamin_c += float(extra_row["vitamin_c"])
 
     return {
-        "calories": int(round(calories)),
-        "protein": int(round(protein)),
-        "fat": round(fat, 1),
-        "carbs": int(round(carbs))
-    }
+    "calories": int(round(calories)),
+    "protein": int(round(protein)),
+    "fat": round(fat, 1),
+    "carbs": int(round(carbs)),
+    "fiber": round(fiber, 1),
+    "calcium": round(calcium, 1),
+    "iron": round(iron, 1),
+    "vitamin_c": round(vitamin_c, 1)
+}
 
 
 def add_nutrition_metrics(df: pd.DataFrame) -> pd.DataFrame:
@@ -304,17 +482,12 @@ def calculate_food_nutrition(
     protein = row["protein"] * portion_gram / 100
     fat = row["fat"] * portion_gram / 100
     carbs = row["carbs"] * portion_gram / 100
+    fiber = row["fiber"] * portion_gram / 100
+    calcium = row["calcium"] * portion_gram / 100
+    iron = row["iron"] * portion_gram / 100
+    vitamin_c = row["vitamin_c"] * portion_gram / 100
 
-    return calories, protein, fat, carbs
-
-
-def resolve_image_path(path_value: str) -> Path:
-    path = Path(str(path_value))
-
-    if path.is_absolute():
-        return path
-
-    return BASE_DIR / path
+    return calories, protein, fat, carbs, fiber, calcium, iron, vitamin_c
 
 
 def apply_plot_theme(fig):
@@ -357,7 +530,7 @@ initialize_session_state(akg_df)
 # =========================
 if not DATA_PATH.exists():
     st.error(
-        "CSV file was not found. Put `Foodimages (4).csv` inside the `data` folder."
+        "CSV file was not found. Put `nutrition_table_cleaned.csv` inside the `data` folder."
     )
     st.stop()
 
@@ -365,7 +538,12 @@ raw_df = prepare_data(
     load_data(DATA_PATH)
 )
 
-if "working_df" not in st.session_state:
+food_model = load_food_model(MODEL_PATH)
+
+if (
+    "working_df" not in st.session_state
+    or set(st.session_state.working_df.columns) != set(raw_df.columns)
+):
     st.session_state.working_df = raw_df.copy()
 
 
@@ -458,6 +636,10 @@ if apply_profile:
     st.session_state.akg_protein = estimated_akg["protein"]
     st.session_state.akg_fat = estimated_akg["fat"]
     st.session_state.akg_carbs = estimated_akg["carbs"]
+    st.session_state.akg_fiber = estimated_akg["fiber"]
+    st.session_state.akg_calcium = estimated_akg["calcium"]
+    st.session_state.akg_iron = estimated_akg["iron"]
+    st.session_state.akg_vitamin_c = estimated_akg["vitamin_c"]
 
     st.rerun()
 
@@ -630,12 +812,20 @@ if meal_df.empty:
     total_protein = 0
     total_fat = 0
     total_carbs = 0
+    total_fiber = 0
+    total_calcium = 0
+    total_iron = 0
+    total_vitamin_c = 0
 
 else:
     total_calories = meal_df["Calories"].sum()
     total_protein = meal_df["Protein"].sum()
     total_fat = meal_df["Fat"].sum()
     total_carbs = meal_df["Carbohydrates"].sum()
+    total_fiber = meal_df["Fiber"].sum()
+    total_calcium = meal_df["Calcium"].sum()
+    total_iron = meal_df["Iron"].sum()
+    total_vitamin_c = meal_df["Vitamin C"].sum()
 
 # SVG CONFIG
 SVG_CONFIG = {
@@ -650,7 +840,7 @@ SVG_CONFIG = {
         "top": -57,
         "left": 180,
         "body_height": 480
-    },
+    }, 
     "child": {
         "scale": 0.9,
         "top": -227,
@@ -758,12 +948,36 @@ carbs_pct = min(
     100
 )
 
+fiber_pct = min(
+    (total_fiber / st.session_state.akg_fiber) * 100,
+    100
+)
+
+calcium_pct = min(
+    (total_calcium / st.session_state.akg_calcium) * 100,
+    100
+)
+
+iron_pct = min(
+    (total_iron / st.session_state.akg_iron) * 100,
+    100
+)
+
+vitamin_c_pct = min(
+    (total_vitamin_c / st.session_state.akg_vitamin_c) * 100,
+    100
+)
+
 overall_pct = (
     calories_pct +
     protein_pct +
     fat_pct +
-    carbs_pct
-) / 4
+    carbs_pct +
+    fiber_pct +
+    calcium_pct +
+    iron_pct +
+    vitamin_c_pct
+) / 8
 
 svg_path, body_type = get_svg_path(
     st.session_state.age,
@@ -818,6 +1032,34 @@ with progress_col:
     )
     st.progress(carbs_pct / 100)
 
+    st.write(
+        f"Fiber: {total_fiber:.2f} / "
+        f"{st.session_state.akg_fiber:.2f} g "
+        f"({fiber_pct:.1f}%)"
+    )
+    st.progress(fiber_pct / 100)
+
+    st.write(
+        f"Calcium: {total_calcium:.2f} / "
+        f"{st.session_state.akg_calcium:.2f} mg "
+        f"({calcium_pct:.1f}%)"
+    )
+    st.progress(calcium_pct / 100)
+
+    st.write(
+        f"Iron: {total_iron:.2f} / "
+        f"{st.session_state.akg_iron:.2f} mg "
+        f"({iron_pct:.1f}%)"
+    )
+    st.progress(iron_pct / 100)
+
+    st.write(
+        f"Vitamin C: {total_vitamin_c:.2f} / "
+        f"{st.session_state.akg_vitamin_c:.2f} mg "
+        f"({vitamin_c_pct:.1f}%)"
+    )
+    st.progress(vitamin_c_pct / 100)
+
     st.markdown(
         f"""
         <div class="insight-card">
@@ -835,59 +1077,198 @@ with progress_col:
 # ADDED FOOD TODAY
 # =========================
 st.markdown("## Added Food Today")
-
-st.markdown(
-    """
-    Add foods you eat today. The dashboard will calculate total calories,
-    protein, fat, and carbohydrates, then compare them with your daily needs.
-    """
+st.caption(
+    "Add your food manually or upload a food image to track today's nutrition intake."
 )
 
-add_col1, add_col2, add_col3 = st.columns([2, 1, 1])
-
-with add_col1:
-    add_food = st.selectbox(
-        "Choose food to add",
-        filtered_df["name"].sort_values().unique(),
-        key="add_food"
-    )
-
-with add_col2:
-    add_portion = st.number_input(
-        "Add portion (grams)",
-        min_value=1,
-        max_value=3000,
-        value=100,
-        step=10,
-        key="add_portion"
-    )
-
-add_row = filtered_df[
-    filtered_df["name"] == add_food
-].iloc[0]
-
-add_calories, add_protein, add_fat, add_carbs = calculate_food_nutrition(
-    add_row,
-    add_portion
+input_method = st.radio(
+    "Choose input method",
+    ["Search food manually", "Upload food image"],
+    horizontal=True
 )
 
-with add_col3:
-    st.write("")
-    st.write("")
+selected_food_name = None
+selected_food_row = None
 
-    if st.button("Add Food Today", type="primary"):
-        st.session_state.meal_log.append(
-            {
-                "Food": add_food,
-                "Portion (g)": add_portion,
-                "Calories": round(add_calories, 2),
-                "Protein": round(add_protein, 2),
-                "Fat": round(add_fat, 2),
-                "Carbohydrates": round(add_carbs, 2)
-            }
+if input_method == "Search food manually":
+    add_col1, add_col2, add_col3 = st.columns([2, 1, 1])
+
+    with add_col1:
+        selected_food_name = st.selectbox(
+            "Choose food",
+            filtered_df["name"].sort_values().unique(),
+            key="manual_add_food"
         )
 
-        st.rerun()
+    with add_col2:
+        add_portion = st.number_input(
+            "Portion (grams)",
+            min_value=1,
+            max_value=3000,
+            value=100,
+            step=10,
+            key="manual_add_portion"
+        )
+
+    selected_food_row = filtered_df[
+        filtered_df["name"] == selected_food_name
+    ].iloc[0]
+
+    add_calories, add_protein, add_fat, add_carbs, add_fiber, add_calcium, add_iron, add_vitamin_c = calculate_food_nutrition(
+        selected_food_row,
+        add_portion
+    )
+
+    with add_col3:
+        st.write("")
+        st.write("")
+
+        if st.button("Add Food Today", type="primary", key="manual_add_button"):
+            st.session_state.meal_log.append(
+                {
+                    "Food": selected_food_name,
+                    "Portion (g)": add_portion,
+                    "Calories": round(add_calories, 2),
+                    "Protein": round(add_protein, 2),
+                    "Fat": round(add_fat, 2),
+                    "Carbohydrates": round(add_carbs, 2),
+                    "Fiber": round(add_fiber, 2),
+                    "Calcium": round(add_calcium, 2),
+                    "Iron": round(add_iron, 2),
+                    "Vitamin C": round(add_vitamin_c, 2)
+                }
+            )
+
+            st.rerun()
+
+else:
+    upload_col1, upload_col2, upload_col3 = st.columns([2, 1, 1])
+
+    with upload_col1:
+        uploaded_food_image = st.file_uploader(
+            "Upload food image",
+            type=["jpg", "jpeg", "png"],
+            key="uploaded_food_image"
+        )
+
+    with upload_col2:
+        image_portion = st.number_input(
+            "Portion (grams)",
+            min_value=1,
+            max_value=3000,
+            value=100,
+            step=10,
+            key="image_add_portion"
+        )
+
+    if uploaded_food_image is not None:
+        image_preview, img_array = preprocess_uploaded_image(uploaded_food_image)
+
+        st.image(
+            image_preview,
+            caption="Uploaded food image",
+            use_container_width=280
+        )
+
+        prediction = food_model.predict(img_array, verbose=0)
+
+
+        if isinstance(prediction, dict):
+            if "class_output" in prediction:
+                class_probs = prediction["class_output"]
+            elif "classification_output" in prediction:
+                class_probs = prediction["classification_output"]
+            elif "food_output" in prediction:
+                class_probs = prediction["food_output"]
+            else:
+                st.error(
+                    "Model tidak mengeluarkan output class makanan. "
+                    "Yang tersedia hanya: " + ", ".join(prediction.keys())
+                )
+                st.stop()
+
+        elif isinstance(prediction, (list, tuple)):
+            class_probs = prediction[0]
+
+        else:
+            class_probs = prediction
+
+        class_probs = np.array(class_probs)
+
+        if class_probs.ndim == 1:
+            class_probs = np.expand_dims(class_probs, axis=0)
+
+        if class_probs.shape[-1] != len(FOOD101_CLASSES):
+            st.error(
+                f"Model output berjumlah {class_probs.shape[-1]}, "
+                f"sedangkan FOOD101_CLASSES berjumlah {len(FOOD101_CLASSES)}. "
+                "Berarti output ini bukan probabilitas class FOOD101."
+            )
+            st.stop()
+
+        predicted_index = int(np.argmax(class_probs[0]))
+        confidence = float(np.max(class_probs[0]) * 100)
+
+        predicted_food_class = FOOD101_CLASSES[predicted_index]
+        predicted_food_name = predicted_food_class.replace("_", " ")
+
+        st.success(
+            f"Detected food: {predicted_food_name.title()} "
+            f"({confidence:.1f}% confidence)"
+        )
+
+        normalized_predicted_name = predicted_food_name.lower()
+
+        matched_food = filtered_df[
+            filtered_df["name"]
+            .str.lower()
+            .str.replace("_", " ", regex=False)
+            .eq(normalized_predicted_name)
+        ]
+
+        if matched_food.empty:
+            matched_food = filtered_df[
+                filtered_df["name"]
+                .str.lower()
+                .str.replace("_", " ", regex=False)
+                .str.contains(normalized_predicted_name, regex=False, na=False)
+            ]
+
+        if matched_food.empty:
+            st.warning(
+                f"Food '{predicted_food_name.title()}' was detected, "
+                "but it was not found in the nutrition dataset."
+            )
+        else:
+            selected_food_row = matched_food.iloc[0]
+            selected_food_name = str(selected_food_row["name"]).replace("_", " ").title()
+
+            add_calories, add_protein, add_fat, add_carbs, add_fiber, add_calcium, add_iron, add_vitamin_c = calculate_food_nutrition(
+                selected_food_row,
+                image_portion
+            )
+
+            with upload_col3:
+                st.write("")
+                st.write("")
+
+                if st.button("Add Detected Food", type="primary", key="image_add_button"):
+                    st.session_state.meal_log.append(
+                        {
+                            "Food": selected_food_name,
+                            "Portion (g)": image_portion,
+                            "Calories": round(add_calories, 2),
+                            "Protein": round(add_protein, 2),
+                            "Fat": round(add_fat, 2),
+                            "Carbohydrates": round(add_carbs, 2),
+                            "Fiber": round(add_fiber, 2),
+                            "Calcium": round(add_calcium, 2),
+                            "Iron": round(add_iron, 2),
+                            "Vitamin C": round(add_vitamin_c, 2)
+                        }
+                    )
+
+                    st.rerun()
 
 # =========================
 # FOOD LOG TABLE
@@ -912,6 +1293,10 @@ else:
 <td>{float(row["Protein"]):.1f} g</td>
 <td>{float(row["Fat"]):.1f} g</td>
 <td>{float(row["Carbohydrates"]):.1f} g</td>
+<td>{float(row["Fiber"]):.1f} g</td>
+<td>{float(row["Calcium"]):.1f} mg</td>
+<td>{float(row["Iron"]):.1f} mg</td>
+<td>{float(row["Vitamin C"]):.1f} mg</td>
 </tr>'''
 
     table_html = f'''<div class="food-log-wrapper">
@@ -924,6 +1309,10 @@ else:
 <th>Protein</th>
 <th>Fat</th>
 <th>Carbohydrates</th>
+<th>Fiber</th>
+<th>Calcium</th>
+<th>Iron</th>
+<th>Vitamin C</th>
 </tr>
 </thead>
 <tbody>
@@ -1003,7 +1392,7 @@ check_row = filtered_df[
     filtered_df["name"] == check_food
 ].iloc[0]
 
-check_calories, check_protein, check_fat, check_carbs = calculate_food_nutrition(
+check_calories, check_protein, check_fat, check_carbs, check_fiber, check_calcium, check_iron, check_vitamin_c = calculate_food_nutrition(
     check_row,
     check_portion
 )
@@ -1011,35 +1400,6 @@ check_calories, check_protein, check_fat, check_carbs = calculate_food_nutrition
 st.markdown(
     f"### Nutrition content for {check_portion} g of {check_food}"
 )
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric(
-    "Calories",
-    f"{check_calories:.2f} kcal",
-    f"{(check_calories / st.session_state.akg_calories) * 100:.1f}% of daily need"
-)
-
-col2.metric(
-    "Protein",
-    f"{check_protein:.2f} g",
-    f"{(check_protein / st.session_state.akg_protein) * 100:.1f}% of daily need"
-)
-
-col3.metric(
-    "Fat",
-    f"{check_fat:.2f} g",
-    f"{(check_fat / st.session_state.akg_fat) * 100:.1f}% of daily need"
-)
-
-col4.metric(
-    "Carbohydrates",
-    f"{check_carbs:.2f} g",
-    f"{(check_carbs / st.session_state.akg_carbs) * 100:.1f}% of daily need"
-)
-
-st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
-st.markdown("## Dataset Overview")
 
 # =========================
 # KPI
@@ -1057,6 +1417,10 @@ calories_pct_check = (check_calories / st.session_state.akg_calories) * 100
 protein_pct_check = (check_protein / st.session_state.akg_protein) * 100
 fat_pct_check = (check_fat / st.session_state.akg_fat) * 100
 carbs_pct_check = (check_carbs / st.session_state.akg_carbs) * 100
+fiber_pct_check = (check_fiber / st.session_state.akg_fiber) * 100
+calcium_pct_check = (check_calcium / st.session_state.akg_calcium) * 100
+iron_pct_check = (check_iron / st.session_state.akg_iron) * 100
+vitamin_c_pct_check = (check_vitamin_c / st.session_state.akg_vitamin_c) * 100
 
 checker_result_html = f'''<div class="checker-result-grid">
 <div class="checker-result-card">
@@ -1086,6 +1450,34 @@ checker_result_html = f'''<div class="checker-result-grid">
 <div class="checker-unit">g</div>
 <div class="checker-percent">{carbs_pct_check:.1f}% of daily need</div>
 </div>
+
+<div class="checker-result-card">
+<div class="checker-label">Fiber</div>
+<div class="checker-value">{check_fiber:.2f}</div>
+<div class="checker-unit">g</div>
+<div class="checker-percent">{fiber_pct_check:.1f}% of daily need</div>
+</div>
+
+<div class="checker-result-card">
+<div class="checker-label">Calcium</div>
+<div class="checker-value">{check_calcium:.2f}</div>
+<div class="checker-unit">mg</div>
+<div class="checker-percent">{calcium_pct_check:.1f}% of daily need</div>
+</div>
+
+<div class="checker-result-card">
+<div class="checker-label">Iron</div>
+<div class="checker-value">{check_iron:.2f}</div>
+<div class="checker-unit">mg</div>
+<div class="checker-percent">{iron_pct_check:.1f}% of daily need</div>
+</div>
+
+<div class="checker-result-card">
+<div class="checker-label">Vitamin C</div>
+<div class="checker-value">{check_vitamin_c:.2f}</div>
+<div class="checker-unit">mg</div>
+<div class="checker-percent">{vitamin_c_pct_check:.1f}% of daily need</div>
+</div>
 </div>'''
 
 st.markdown(checker_result_html, unsafe_allow_html=True)
@@ -1106,7 +1498,7 @@ fig_eff = px.bar(
     orientation="h",
     color="overall_portions_combined",
     color_continuous_scale="Greens_r",
-    hover_data=["calories", "protein", "fat", "carbs"],
+    hover_data=["calories", "protein", "fat", "carbs", "fiber", "calcium", "iron", "vitamin_c"],
     text="overall_portions_combined",
     title="Top Foods by Portion Efficiency"
 )
@@ -1262,6 +1654,66 @@ with col4:
         use_container_width=True
     )
 
+col5, col6 = st.columns(2)
+
+with col5:
+    fig_fiber = px.histogram(
+        filtered_df,
+        x="fiber",
+        nbins=30,
+        color_discrete_sequence=["#A7E8B8"],
+        title="Fiber Distribution"
+    )
+
+    st.plotly_chart(
+        apply_plot_theme(fig_fiber),
+        use_container_width=True
+    )
+
+with col6:
+    fig_calcium = px.histogram(
+        filtered_df,
+        x="calcium",
+        nbins=30,
+        color_discrete_sequence=["#8EDFA8"],
+        title="Calcium Distribution"
+    )
+
+    st.plotly_chart(
+        apply_plot_theme(fig_calcium),
+        use_container_width=True
+    )
+
+col7, col8 = st.columns(2)
+
+with col7:
+    fig_iron = px.histogram(
+        filtered_df,
+        x="iron",
+        nbins=30,
+        color_discrete_sequence=["#72D591"],
+        title="Iron Distribution"
+    )
+
+    st.plotly_chart(
+        apply_plot_theme(fig_iron),
+        use_container_width=True
+    )
+
+with col8:
+    fig_vitamin_c = px.histogram(
+        filtered_df,
+        x="vitamin_c",
+        nbins=30,
+        color_discrete_sequence=["#BCEBCB"],
+        title="Vitamin C Distribution"
+    )
+
+    st.plotly_chart(
+        apply_plot_theme(fig_vitamin_c),
+        use_container_width=True
+    )
+
 # =========================
 # INSIGHTS
 # =========================
@@ -1270,6 +1722,61 @@ st.markdown("## Key Insights")
 avg_cal = filtered_df["calories"].mean()
 avg_protein = filtered_df["protein"].mean()
 median_eff = filtered_df["overall_portions_combined"].median()
+
+# Insight from Check Food Nutrition by Portion
+nutrition_percentages = {
+    "Calories": calories_pct_check,
+    "Protein": protein_pct_check,
+    "Fat": fat_pct_check,
+    "Carbohydrates": carbs_pct_check,
+    "Fiber": fiber_pct_check,
+    "Calcium": calcium_pct_check,
+    "Iron": iron_pct_check,
+    "Vitamin C": vitamin_c_pct_check
+}
+
+highest_nutrient = max(
+    nutrition_percentages,
+    key=nutrition_percentages.get
+)
+
+lowest_nutrient = min(
+    nutrition_percentages,
+    key=nutrition_percentages.get
+)
+
+highest_value = nutrition_percentages[highest_nutrient]
+lowest_value = nutrition_percentages[lowest_nutrient]
+
+if calories_pct_check >= 25:
+    calorie_insight = (
+        "This portion contributes quite a high amount of daily calories, "
+        "so it is better to balance it with lower-calorie foods in other meals."
+    )
+elif calories_pct_check >= 10:
+    calorie_insight = (
+        "This portion gives a moderate calorie contribution and can fit well "
+        "as part of a balanced meal."
+    )
+else:
+    calorie_insight = (
+        "This portion has a relatively low calorie contribution, so it may need "
+        "to be combined with other foods to meet daily energy needs."
+    )
+
+if protein_pct_check >= 20:
+    protein_insight = (
+        "The protein contribution is relatively strong for this portion."
+    )
+elif protein_pct_check >= 10:
+    protein_insight = (
+        "The protein contribution is moderate for this portion."
+    )
+else:
+    protein_insight = (
+        "The protein contribution is relatively low, so adding a protein-rich food "
+        "could make the meal more balanced."
+    )
 
 st.markdown(
     f"""
@@ -1301,40 +1808,32 @@ st.markdown(
             in the selected range.
         </div>
     </div>
+
+    <div class="insight-card">
+        <div class="insight-title">Main nutrient contribution</div>
+        <div class="insight-text">
+            For <b>{check_portion} g of {check_food}</b>, the highest daily-need contribution
+            comes from <b>{highest_nutrient}</b>, reaching <b>{highest_value:.1f}%</b>
+            of the daily requirement.
+        </div>
+    </div>
+
+    <div class="insight-card">
+        <div class="insight-title">Lowest nutrient contribution</div>
+        <div class="insight-text">
+            The lowest contribution from this portion is <b>{lowest_nutrient}</b>,
+            at only <b>{lowest_value:.1f}%</b> of the daily need.
+            This nutrient may need to be supported by other foods in the same day.
+        </div>
+    </div>
+
+    <div class="insight-card">
+        <div class="insight-title">Portion recommendation</div>
+        <div class="insight-text">
+            {calorie_insight}
+            {protein_insight}
+        </div>
+    </div>
     """,
     unsafe_allow_html=True,
 )
-
-# =========================
-# IMAGE PREVIEW
-# =========================
-st.markdown("## Dataset Image Preview")
-
-preview_food = st.selectbox(
-    "Select a dataset image",
-    filtered_df["name"].sort_values().unique(),
-    key="preview_food"
-)
-
-preview_row = filtered_df[
-    filtered_df["name"] == preview_food
-].iloc[0]
-
-image_path = resolve_image_path(
-    preview_row["image_path"]
-)
-
-if image_path.exists():
-    st.image(
-        str(image_path),
-        caption=preview_food,
-        width=380
-    )
-
-else:
-    st.warning(
-        f"Image was not found at this path: {image_path}"
-    )
-
-
-

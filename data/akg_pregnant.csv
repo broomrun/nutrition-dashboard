@@ -1,0 +1,4 @@
+age_category,age_group,min_age,max_age,body_weight,height,calories_kcal,protein_g,fat_g,carbs_g,vitamin_c_mg,fiber_g,iron_mg,calcium_mg,preg_month_min,preg_month_max,bf_month_min,bf_month_max
+pregnant,trimester 1,13.0,49.0,,,180.0,1.0,2.3,25.0,10.0,3.0,0.0,200.0,0.0,3.0,0.0,0.0
+pregnant,trimester 2,13.0,49.0,,,300.0,10.0,2.3,40.0,10.0,4.0,9.0,200.0,4.0,6.0,0.0,0.0
+pregnant,trimester 3,13.0,49.0,,,300.0,30.0,2.3,40.0,10.0,4.0,9.0,200.0,7.0,9.0,0.0,0.0
