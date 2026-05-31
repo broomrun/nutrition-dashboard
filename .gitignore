@@ -1,19 +1,43 @@
 # Virtual Environment
 venv/
-.env/
+env/
+ENV/
 .venv/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
 
 # Python Cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
-# Streamlit
+# Streamlit Secrets
 .streamlit/secrets.toml
 
-# IDE
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# IDE / Editor
 .idea/
 .vscode/
 
-# OS
+# OS Files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Temporary Files
+*.tmp
+*.temp
+
+# Model Training Checkpoints
+checkpoints/
+*.ckpt
+
+# TensorFlow / Keras Temporary Files
+*.h5.tmp
