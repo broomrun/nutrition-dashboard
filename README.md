@@ -6,6 +6,8 @@ Food Nutrition Dashboard is an interactive Streamlit-based dashboard designed to
 
 This project combines food nutrition datasets, AKG data, and a machine learning model for food image detection to support daily nutrition monitoring in a simple and interactive way.
 
+[![Open Dashboard in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://nutrition-dashboard-drqd65otmungyfkjzhhvan.streamlit.app/)
+
 ---
 
 ## Features
@@ -157,7 +159,7 @@ After running the command, the dashboard will open in your browser.
 
 ## Deployment
 
-This project can be deployed using **Streamlit Community Cloud**.
+This project deployed using **Streamlit Community Cloud**.
 
 Recommended deployment settings:
 
